@@ -15,6 +15,8 @@ import {
   NewDocumentInput,
   ProgresBatasLuar,
   ProgresBatasDalam,
+  WilayahKonawe,
+  formatNamaKecamatan,
   validateNewDocument
 } from '../data/boundaryData';
 
@@ -254,6 +256,7 @@ export const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
 };
 
 interface DocumentDetailModalProps {
+  wilayah?: WilayahKonawe | null;
   doc: DokumenBatas | null;
   progresLuar: ProgresBatasLuar | null;
   progresDalam: ProgresBatasDalam | null;
@@ -262,13 +265,14 @@ interface DocumentDetailModalProps {
 }
 
 export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
+  wilayah,
   doc,
   progresLuar,
   progresDalam,
   onClose,
   onOpenWebGis
 }) => {
-  if (!doc && !progresLuar && !progresDalam) return null;
+  if (!wilayah && !doc && !progresLuar && !progresDalam) return null;
 
   return (
     <div
@@ -281,14 +285,22 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
         <div className="flex items-start justify-between gap-4 pb-4 border-b border-stone-200">
           <div>
             <p className="text-xs font-mono text-emerald-800 font-semibold">
-              {doc
+              {wilayah
+                ? `ENTITAS WILAYAH DEFINITIF · ${wilayah.kode}`
+                : doc
                 ? `ARSIP DOKUMEN · ${doc.id}`
                 : progresLuar
                 ? `SEGMEN BATAS LUAR DAERAH · ${progresLuar.id}`
                 : `SEGMEN BATAS DALAM DAERAH · ${progresDalam?.id}`}
             </p>
             <h2 id="modal-detail-title" className="text-xl font-bold text-slate-900 mt-1">
-              {doc ? `${doc.namaDesa}, Kec. ${doc.kecamatan}` : progresLuar ? progresLuar.segmen : progresDalam?.segmen}
+              {wilayah
+                ? `${wilayah.status} ${wilayah.nama_wilayah}, Kec. ${formatNamaKecamatan(wilayah.kecamatan)}`
+                : doc
+                ? `${doc.namaDesa}, Kec. ${doc.kecamatan}`
+                : progresLuar
+                ? progresLuar.segmen
+                : progresDalam?.segmen}
             </h2>
           </div>
           <button
@@ -300,6 +312,102 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {wilayah && (
+          <div className="mt-5 space-y-4 text-sm">
+            <dl className="divide-y divide-stone-200 border-y border-stone-200">
+              <div className="py-3 flex justify-between gap-4">
+                <dt className="text-slate-500">Kode Wilayah Kemendagri</dt>
+                <dd className="font-mono text-xs font-bold text-slate-900">{wilayah.kode}</dd>
+              </div>
+              <div className="py-3 flex justify-between gap-4">
+                <dt className="text-slate-500">Status Wilayah</dt>
+                <dd className="font-semibold text-emerald-800">{wilayah.status}</dd>
+              </div>
+              <div className="py-3 flex justify-between gap-4">
+                <dt className="text-slate-500">Kecamatan</dt>
+                <dd className="font-semibold text-slate-900">
+                  Kecamatan {formatNamaKecamatan(wilayah.kecamatan)}
+                </dd>
+              </div>
+            </dl>
+
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Dasar Hukum Pembentukan (UU / PP / Perda)
+              </p>
+              <p className="text-slate-700 mt-1 leading-relaxed">
+                {wilayah.keterangan_pembentukan.trim() || '—'}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Keterangan Tapal Batas (Perbup / Berita Acara)
+              </p>
+              <p className="text-slate-700 mt-1 leading-relaxed">
+                {wilayah.keterangan_batas.trim() || '—'}
+              </p>
+            </div>
+
+            <div className="pt-4 border-t border-stone-200 flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenWebGis(
+                    `${wilayah.status} ${wilayah.nama_wilayah}, Kecamatan ${formatNamaKecamatan(
+                      wilayah.kecamatan
+                    )}`
+                  );
+                }}
+                className="px-4 py-2 text-xs font-semibold text-emerald-950 bg-amber-400 hover:bg-amber-300 rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>Lihat di Peta WebGIS</span>
+              </button>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {Array.isArray(wilayah.link_pembentukan) &&
+                  wilayah.link_pembentukan.map((url, idx) => (
+                    <a
+                      key={`${wilayah.kode}-modal-perda-${idx}`}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3.5 py-2 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg inline-flex items-center gap-1.5 transition-colors"
+                    >
+                      <span>
+                        Buka UU/Perda
+                        {wilayah.link_pembentukan.length > 1 ? ` #${idx + 1}` : ''}
+                      </span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  ))}
+
+                {wilayah.link_batas.trim().length > 0 ? (
+                  <a
+                    href={wilayah.link_batas}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 text-xs font-semibold text-white bg-emerald-900 hover:bg-emerald-800 rounded-lg inline-flex items-center gap-1.5 transition-colors"
+                  >
+                    <span>Unduh / Buka Dokumen</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="px-4 py-2 text-xs font-semibold text-slate-500 bg-stone-200 border border-stone-300 rounded-lg cursor-not-allowed whitespace-nowrap"
+                  >
+                    Dokumen Belum Tersedia
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {doc && (
           <div className="mt-5 space-y-4 text-sm">
@@ -332,7 +440,7 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
                 <dd className="font-mono text-xs font-semibold text-slate-900">{doc.nomorDokumen}</dd>
               </div>
               <div className="py-3 flex justify-between gap-4">
-                <dt className="text-slate-500">Titik Ikat / Pilar Utama</dt>
+                <dt className="text-slate-500">Identitas Wilayah</dt>
                 <dd className="font-mono text-xs text-slate-800">{doc.koordinatUtama}</dd>
               </div>
               <div className="py-3 flex justify-between gap-4">
@@ -361,15 +469,25 @@ export const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({
                 <span>Lihat di Peta WebGIS</span>
               </button>
 
-              <a
-                href={doc.linkDrive}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 text-xs font-semibold text-white bg-emerald-900 hover:bg-emerald-800 rounded-lg inline-flex items-center gap-1.5 transition-colors"
-              >
-                <span>Buka Dokumen di Google Drive</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+              {doc.linkDrive && doc.linkDrive.trim().length > 0 ? (
+                <a
+                  href={doc.linkDrive}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 text-xs font-semibold text-white bg-emerald-900 hover:bg-emerald-800 rounded-lg inline-flex items-center gap-1.5 transition-colors"
+                >
+                  <span>Unduh / Buka Dokumen</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="px-4 py-2 text-xs font-semibold text-slate-500 bg-stone-200 border border-stone-300 rounded-lg cursor-not-allowed whitespace-nowrap"
+                >
+                  Dokumen Belum Tersedia
+                </button>
+              )}
             </div>
           </div>
         )}

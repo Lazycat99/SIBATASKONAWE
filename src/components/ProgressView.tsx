@@ -314,16 +314,18 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                     <span>Lihat Dokumen</span>
                   </button>
 
-                  <a
-                    href={item.linkDokumen}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Buka Google Drive ${item.segmen}`}
-                    className="px-3 py-2 text-xs font-medium text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg inline-flex items-center gap-1 transition-colors whitespace-nowrap"
-                  >
-                    <span>Drive</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+                  {item.linkDokumen && item.linkDokumen.trim().length > 0 && (
+                    <a
+                      href={item.linkDokumen}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Buka Google Drive ${item.segmen}`}
+                      className="px-3 py-2 text-xs font-medium text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg inline-flex items-center gap-1 transition-colors whitespace-nowrap"
+                    >
+                      <span>Drive</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
                 </div>
 
                 <button

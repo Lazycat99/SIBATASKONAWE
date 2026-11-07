@@ -5,13 +5,15 @@
 
 import { useState, useMemo } from 'react';
 import {
-  INITIAL_DOKUMEN_BATAS,
+  wilayahDataKonawe,
   INITIAL_PROGRES_LUAR,
-  INITIAL_PROGRES_DALAM,
+  WilayahKonawe,
   DokumenBatas,
   ProgresBatasLuar,
   ProgresBatasDalam,
   NewDocumentInput,
+  buildDokumenFromWilayah,
+  buildProgresDalamFromWilayah,
   calculateDashboardStats,
   getUniqueKecamatan,
   generateDataJsSource
@@ -30,50 +32,55 @@ import {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('beranda');
-  const [dokumenList, setDokumenList] = useState<DokumenBatas[]>(INITIAL_DOKUMEN_BATAS);
+  const [wilayahList, setWilayahList] = useState<WilayahKonawe[]>(wilayahDataKonawe);
   const [progresLuar] = useState<ProgresBatasLuar[]>(INITIAL_PROGRES_LUAR);
-  const [progresDalam] = useState<ProgresBatasDalam[]>(INITIAL_PROGRES_DALAM);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isVercelModalOpen, setIsVercelModalOpen] = useState(false);
 
+  const [selectedWilayah, setSelectedWilayah] = useState<WilayahKonawe | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<DokumenBatas | null>(null);
   const [selectedProgresLuar, setSelectedProgresLuar] = useState<ProgresBatasLuar | null>(null);
   const [selectedProgresDalam, setSelectedProgresDalam] = useState<ProgresBatasDalam | null>(null);
   const [activeMapSegment, setActiveMapSegment] = useState<string | null>(null);
 
-  const stats = useMemo(() => calculateDashboardStats(dokumenList), [dokumenList]);
-  const kecamatanSuggestions = useMemo(() => getUniqueKecamatan(dokumenList), [dokumenList]);
+  const dokumenList = useMemo(() => buildDokumenFromWilayah(wilayahList), [wilayahList]);
+  const progresDalam = useMemo(() => buildProgresDalamFromWilayah(wilayahList), [wilayahList]);
+  const stats = useMemo(
+    () => calculateDashboardStats(wilayahList, dokumenList),
+    [wilayahList, dokumenList]
+  );
+  const kecamatanSuggestions = useMemo(() => getUniqueKecamatan(wilayahList), [wilayahList]);
 
   const dataJsCode = useMemo(
-    () => generateDataJsSource(dokumenList, progresLuar, progresDalam),
-    [dokumenList, progresLuar, progresDalam]
+    () => generateDataJsSource(wilayahList, progresLuar, progresDalam),
+    [wilayahList, progresLuar, progresDalam]
   );
   const standaloneHtmlCode = useMemo(() => generateStandaloneIndexHtml(), []);
 
   const handleAddDocument = (input: NewDocumentInput) => {
-    const nextNumber = dokumenList.length + 1;
-    const formattedId = `DOK-${String(nextNumber).padStart(3, '0')}`;
-    const newDoc: DokumenBatas = {
-      id: formattedId,
-      namaDesa: input.namaDesa.trim(),
-      kecamatan: input.kecamatan.trim(),
-      jenisDokumen: input.jenisDokumen,
-      status: input.status,
-      nomorDokumen: input.nomorDokumen.trim(),
-      linkDrive: input.linkDrive.trim(),
-      tanggalUpdate: 'Baru Ditambahkan',
-      koordinatUtama:
-        input.koordinatUtama && input.koordinatUtama.trim().length > 0
-          ? input.koordinatUtama.trim()
-          : 'Titik Kartometrik Terdata di Peta Kerja',
-      keterangan:
-        input.keterangan && input.keterangan.trim().length > 0
-          ? input.keterangan.trim()
-          : `Arsip ${input.jenisDokumen} wilayah ${input.namaDesa.trim()} Kecamatan ${input.kecamatan.trim()}.`
+    const rawName = input.namaDesa.trim();
+    const isKelurahan =
+      input.statusWilayah === 'Kelurahan' || /^kelurahan\b/i.test(rawName);
+    const cleanName = rawName.replace(/^(desa|kelurahan)\s+/i, '').trim();
+    const cleanKec = input.kecamatan.replace(/^kecamatan\s+/i, '').trim();
+
+    const nextSeq = String(wilayahList.length + 1).padStart(4, '0');
+    const newWilayah: WilayahKonawe = {
+      kode: input.kode?.trim() || `74.02.99.${isKelurahan ? '1' : '2'}${nextSeq.slice(1)}`,
+      kecamatan: `Kecamatan ${cleanKec}`,
+      nama_wilayah: cleanName,
+      status: isKelurahan ? 'Kelurahan' : 'Desa',
+      keterangan_pembentukan: input.keterangan?.trim() || '',
+      link_pembentukan: [],
+      keterangan_batas:
+        input.status === 'Draft'
+          ? `Tahap Penyusunan Draf ${input.nomorDokumen.trim()}`
+          : input.nomorDokumen.trim(),
+      link_batas: input.linkDrive.trim()
     };
 
-    setDokumenList((prev) => [newDoc, ...prev]);
+    setWilayahList((prev) => [newWilayah, ...prev]);
   };
 
   const handleOpenMapWithSegment = (fokusPeta: string) => {
@@ -96,9 +103,11 @@ export default function App() {
         {activeTab === 'beranda' && (
           <HomeView
             stats={stats}
+            wilayahList={wilayahList}
             recentDocs={dokumenList}
             onNavigate={setActiveTab}
             onSelectDocument={(doc) => setSelectedDoc(doc)}
+            onSelectWilayah={(item) => setSelectedWilayah(item)}
             onOpenVercelCode={() => setIsVercelModalOpen(true)}
           />
         )}
@@ -107,8 +116,10 @@ export default function App() {
           <DocumentCatalogView
             key="produk-hukum"
             jenisDokumen="Perbup"
+            wilayahList={wilayahList}
             dokumenList={dokumenList}
             onSelectDocument={(doc) => setSelectedDoc(doc)}
+            onSelectWilayah={(item) => setSelectedWilayah(item)}
             onOpenAddModal={() => setIsAddModalOpen(true)}
           />
         )}
@@ -117,8 +128,10 @@ export default function App() {
           <DocumentCatalogView
             key="berita-acara"
             jenisDokumen="BA"
+            wilayahList={wilayahList}
             dokumenList={dokumenList}
             onSelectDocument={(doc) => setSelectedDoc(doc)}
+            onSelectWilayah={(item) => setSelectedWilayah(item)}
             onOpenAddModal={() => setIsAddModalOpen(true)}
           />
         )}
@@ -159,7 +172,7 @@ export default function App() {
               onClick={() => setIsVercelModalOpen(true)}
               className="text-emerald-800 hover:text-emerald-950 font-semibold transition-colors cursor-pointer"
             >
-              Unduh Paket Kode (data.js & index.html)
+              Unduh Paket Kode (data.js &amp; index.html)
             </button>
             <span aria-hidden="true">·</span>
             <button
@@ -182,10 +195,12 @@ export default function App() {
       />
 
       <DocumentDetailModal
+        wilayah={selectedWilayah}
         doc={selectedDoc}
         progresLuar={selectedProgresLuar}
         progresDalam={selectedProgresDalam}
         onClose={() => {
+          setSelectedWilayah(null);
           setSelectedDoc(null);
           setSelectedProgresLuar(null);
           setSelectedProgresDalam(null);

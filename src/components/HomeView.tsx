@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ArrowRight,
   FileText,
@@ -6,26 +6,51 @@ import {
   Activity,
   Map,
   Code2,
-  ExternalLink
+  ExternalLink,
+  Search,
+  X,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
-import { DashboardStats, DokumenBatas } from '../data/boundaryData';
+import {
+  DashboardStats,
+  DokumenBatas,
+  WilayahKonawe,
+  filterWilayahKonawe,
+  formatNamaKecamatan
+} from '../data/boundaryData';
 import { NavTab } from './Navbar';
 
 interface HomeViewProps {
   stats: DashboardStats;
+  wilayahList: WilayahKonawe[];
   recentDocs: DokumenBatas[];
   onNavigate: (tab: NavTab) => void;
   onSelectDocument: (doc: DokumenBatas) => void;
+  onSelectWilayah: (item: WilayahKonawe) => void;
   onOpenVercelCode: () => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
   stats,
-  recentDocs,
+  wilayahList,
   onNavigate,
-  onSelectDocument,
+  onSelectWilayah,
   onOpenVercelCode
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const trimmedQuery = searchQuery.trim();
+  const isSearching = trimmedQuery.length > 0;
+
+  // Live filtering: Hanya jalankan pencarian jika kolom pencarian tidak kosong
+  const searchResults = useMemo(() => {
+    if (!isSearching) return [];
+    return filterWilayahKonawe(wilayahList, {
+      searchQuery: trimmedQuery
+    });
+  }, [wilayahList, trimmedQuery, isSearching]);
+
   return (
     <div className="space-y-10">
       {/* HERO SECTION (2-Column Split on Desktop with items-stretch) */}
@@ -50,7 +75,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </p>
 
               <p className="mt-3 text-sm text-emerald-200/75 leading-relaxed max-w-2xl">
-                Portal repositori terpadu untuk keterbukaan arsip Peraturan Bupati, Berita Acara kesepakatan pelacakan lapangan, pemantauan progres penegasan batas daerah, serta visualisasi spasial WebGIS Kabupaten Konawe.
+                Portal pangkalan data terpadu yang memuat <strong className="text-white font-semibold">{stats.totalDesaKelurahan} wilayah definitif ({stats.totalDesa} Desa &amp; {stats.totalKelurahan} Kelurahan)</strong> pada <strong className="text-white font-semibold">{stats.totalKecamatan} Kecamatan</strong> di Kabupaten Konawe beserta dokumen Undang-Undang/Perda pembentukan, Peraturan Bupati batas wilayah, Berita Acara, dan peta spasial WebGIS.
               </p>
             </div>
 
@@ -60,7 +85,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 onClick={() => onNavigate('produk-hukum')}
                 className="px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-semibold text-sm rounded-lg transition-colors inline-flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
               >
-                <span>Telusuri Produk Hukum</span>
+                <span>Telusuri Pangkalan Data Wilayah</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
@@ -79,7 +104,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 className="px-4 py-2.5 bg-transparent hover:bg-emerald-900/60 text-emerald-200 hover:text-white font-medium text-xs rounded-lg border border-emerald-800 transition-colors inline-flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
               >
                 <Code2 className="w-4 h-4 text-amber-400" />
-                <span>Kode Siap Vercel (data.js & index.html)</span>
+                <span>Kode Siap Vercel (data.js &amp; index.html)</span>
               </button>
             </div>
           </div>
@@ -96,33 +121,34 @@ export const HomeView: React.FC<HomeViewProps> = ({
             />
             <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/90 via-emerald-950/35 to-transparent flex flex-col justify-end p-6">
               <p className="text-xs font-mono text-amber-300 tabular-nums">
-                KOORDINAT PUSAT PEMERINTAHAN: 03°51&apos;22.4&quot; LS · 122°02&apos;10.5&quot; BT
+                KODE KEMENDAGRI KAB. KONAWE: 74.02 · {stats.totalKecamatan} KECAMATAN · {stats.totalDesaKelurahan} DESA/KELURAHAN
               </p>
               <p className="text-sm font-medium text-white mt-1">
-                Koridor Lembah Sungai Konaweha & Kawasan Perkotaan Unaaha
+                Koridor Lembah Sungai Konaweha &amp; Kawasan Perkotaan Unaaha
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* DASBOR RINGKASAN STATISTIK (COUNTER CARDS — DIHITUNG OTOMATIS DARI DATA.JS) */}
+      {/* DASBOR RINGKASAN STATISTIK (COUNTER CARDS — DIHITUNG DINAMIS DARI WILAYAHDATAKONAWE) */}
       <section aria-labelledby="heading-statistik">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-4">
           <div>
             <h2 id="heading-statistik" className="text-xl font-bold text-slate-900">
-              Dasbor Ringkasan Statistik Tapal Batas
+              Dasbor Ringkasan Statistik Wilayah &amp; Tapal Batas
             </h2>
             <p className="text-sm text-slate-600">
-              Rekapitulasi otomatis berdasarkan basis data aktif <code className="font-mono text-xs bg-stone-200/70 px-1.5 py-0.5 rounded">data.js</code> ({stats.totalDokumen} total rekaman dokumen).
+              Rekapitulasi dinamis real-time dari pangkalan data <code className="font-mono text-xs bg-stone-200/70 px-1.5 py-0.5 rounded">wilayahDataKonawe</code> ({stats.totalDesaKelurahan} entitas wilayah definitif).
             </p>
           </div>
           <span className="text-xs text-slate-500 font-mono tabular-nums">
-            Sinkronisasi Cloud · Bagian Tapem Setda Kab. Konawe
+            Sinkronisasi Data Resmi · Bagian Tapem Setda Kab. Konawe
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Card 1: Total Kecamatan Terdata */}
           <div className="bg-white rounded-xl p-6 border border-stone-200 flex flex-col justify-between">
             <div>
               <p className="text-xs font-medium text-slate-500">Total Kecamatan Terdata</p>
@@ -134,25 +160,32 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </p>
             </div>
             <p className="text-xs text-slate-500 mt-4 pt-3 border-t border-stone-100">
-              Unaaha · Uepai · Padangguni · Tongauna · Lambuya · Wawotobi
+              Kecamatan definitif se-Kabupaten Konawe (Kode 74.02)
             </p>
           </div>
 
+          {/* Card 2: Total Desa / Kelurahan */}
           <div className="bg-white rounded-xl p-6 border border-stone-200 flex flex-col justify-between">
             <div>
               <p className="text-xs font-medium text-slate-500">Total Desa / Kelurahan</p>
-              <p
-                data-testid="counter-desa"
-                className="text-3xl sm:text-4xl font-bold text-slate-900 font-mono tabular-nums mt-2"
-              >
-                {stats.totalDesaKelurahan}
-              </p>
+              <div className="flex items-baseline gap-2.5 mt-2">
+                <p
+                  data-testid="counter-desa"
+                  className="text-3xl sm:text-4xl font-bold text-slate-900 font-mono tabular-nums"
+                >
+                  {stats.totalDesaKelurahan}
+                </p>
+                <span className="text-xs text-slate-500 font-mono tabular-nums">
+                  ({stats.totalDesa} Desa · {stats.totalKelurahan} Kel.)
+                </span>
+              </div>
             </div>
             <p className="text-xs text-slate-500 mt-4 pt-3 border-t border-stone-100">
-              Satuan wilayah desa & kelurahan dalam basis data
+              {stats.totalPerdaPembentukan} wilayah terdata dasar UU/PP/Perda Pembentukan
             </p>
           </div>
 
+          {/* Card 3: Jumlah Perbup Final */}
           <div className="bg-white rounded-xl p-6 border border-stone-200 flex flex-col justify-between">
             <div>
               <p className="text-xs font-medium text-slate-500">Jumlah Perbup Final</p>
@@ -169,10 +202,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
             </div>
             <p className="text-xs text-emerald-800 font-medium mt-4 pt-3 border-t border-stone-100">
-              Peraturan Bupati Definitif Berlaku Sah
+              {stats.totalLinkBatas} Tautan Dokumen Perbup Tersedia di Cloud
             </p>
           </div>
 
+          {/* Card 4: Berita Acara & Regulasi */}
           <div className="bg-white rounded-xl p-6 border border-stone-200 flex flex-col justify-between">
             <div>
               <p className="text-xs font-medium text-slate-500">Berita Acara Selesai</p>
@@ -184,15 +218,205 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   {stats.totalBaFinal}
                 </p>
                 <span className="text-xs text-slate-500 font-mono tabular-nums">
-                  (+{stats.totalBaDraft} Dalam Proses)
+                  ({stats.totalLinkPembentukan} Link Perda)
                 </span>
               </div>
             </div>
             <p className="text-xs text-amber-800 font-medium mt-4 pt-3 border-t border-stone-100">
-              Arsip Kesepakatan Tapal Batas Final
+              Arsip Kesepakatan Batas &amp; Regulasi Desa/Kelurahan
             </p>
           </div>
         </div>
+      </section>
+
+      {/* KOLOM PENCARIAN WILAYAH CEPAT & ELEGAN (LIVE FILTERING TEPAT DI BAWAH DASBOR STATISTIK) */}
+      <section aria-labelledby="heading-pencarian-beranda" className="bg-white rounded-2xl border border-stone-200 p-6 sm:p-8 shadow-xs">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-xs font-mono uppercase tracking-widest text-emerald-800 font-semibold">
+            PENCARIAN CEPAT PANGKALAN DATA WILAYAH
+          </p>
+          <h2 id="heading-pencarian-beranda" className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">
+            Cari Desa, Kelurahan, atau Kecamatan
+          </h2>
+          <p className="text-sm text-slate-600 mt-2">
+            Ketik nama Desa/Kelurahan, nama Kecamatan, atau kode wilayah untuk menampilkan kartu informasi batas wilayah dan tautan unduh dokumennya secara instan.
+          </p>
+
+          <div className="mt-6 relative">
+            <Search className="w-5 h-5 text-emerald-800 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              id="beranda-search-input"
+              data-testid="beranda-search-input"
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Ketik nama Desa / Kelurahan atau Kecamatan (contoh: Unaaha, Kasumewuho, Lambuya, Routa)..."
+              aria-label="Cari nama Desa, Kelurahan, atau Kecamatan di Kabupaten Konawe"
+              className="w-full pl-12 pr-12 py-4 bg-stone-50 focus:bg-white rounded-xl border-2 border-stone-200 focus:border-emerald-800 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none transition-colors shadow-2xs"
+            />
+            {isSearching && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                aria-label="Bersihkan kata kunci pencarian"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* HASIL PENCARIAN DINAMIS (HANYA MUNCUL JIKA KOLOM PENCARIAN TIDAK KOSONG) */}
+        {isSearching && (
+          <div data-testid="beranda-search-results" className="mt-8 pt-6 border-t border-stone-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
+              <p className="text-sm text-slate-700">
+                Menampilkan{' '}
+                <strong className="font-mono font-bold text-slate-900 tabular-nums">
+                  {searchResults.length}
+                </strong>{' '}
+                hasil pencarian untuk kata kunci{' '}
+                <span className="font-semibold text-emerald-900">&ldquo;{trimmedQuery}&rdquo;</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer self-start sm:self-auto"
+              >
+                Tutup Hasil Pencarian
+              </button>
+            </div>
+
+            {searchResults.length === 0 ? (
+              <div className="bg-stone-50 rounded-xl border border-stone-200 p-8 text-center">
+                <p className="text-sm font-bold text-slate-900">
+                  Wilayah tidak ditemukan untuk kata kunci &ldquo;{trimmedQuery}&rdquo;
+                </p>
+                <p className="text-xs text-slate-600 mt-1">
+                  Periksa kembali ejaan nama Desa/Kelurahan atau Kecamatan yang Anda cari.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {searchResults.map((item) => {
+                  const ketBatas = item.keterangan_batas.trim();
+                  const ketPerda = item.keterangan_pembentukan.trim();
+                  const hasLinkBatas = item.link_batas.trim().length > 0;
+                  const hasLinkPerda =
+                    Array.isArray(item.link_pembentukan) && item.link_pembentukan.length > 0;
+                  const isDraft =
+                    ketBatas.toLowerCase().includes('draf') ||
+                    ketBatas.toLowerCase().includes('tahap penyusunan');
+
+                  return (
+                    <div
+                      key={item.kode}
+                      data-testid="beranda-wilayah-card"
+                      className="bg-stone-50/70 hover:bg-white rounded-xl p-5 border border-stone-200 transition-colors flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2 text-xs text-slate-500 mb-2">
+                          <span className="font-medium text-slate-700">
+                            Kecamatan {formatNamaKecamatan(item.kecamatan)}
+                          </span>
+                          <span className="font-mono tabular-nums text-slate-800 font-semibold">
+                            {item.kode}
+                          </span>
+                        </div>
+
+                        <h3 className="text-base font-bold text-slate-900">
+                          {item.status} {item.nama_wilayah}
+                        </h3>
+
+                        {ketBatas ? (
+                          <div className="mt-3">
+                            <div
+                              className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
+                                isDraft ? 'text-amber-800' : 'text-emerald-800'
+                              }`}
+                            >
+                              {isDraft ? (
+                                <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              ) : (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                              )}
+                              <span>
+                                {isDraft ? 'Draf Perbup (On-Going)' : 'Perbup / BA Batas (Final)'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-700 mt-1 leading-relaxed">
+                              {ketBatas}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-400 font-mono mt-3">
+                            Belum Terbit Perbup Batas Wilayah
+                          </p>
+                        )}
+
+                        {ketPerda && (
+                          <p className="text-xs text-slate-500 mt-2.5 leading-relaxed line-clamp-2">
+                            <strong className="text-slate-700">Dasar Pembentukan:</strong>{' '}
+                            {ketPerda}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="mt-5 pt-3.5 border-t border-stone-200/80 flex flex-wrap items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onSelectWilayah(item)}
+                          className="px-3 py-2 text-xs font-medium text-slate-700 bg-white hover:bg-stone-100 border border-stone-200 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+                        >
+                          Rincian Wilayah
+                        </button>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          {hasLinkPerda &&
+                            item.link_pembentukan.map((url, idx) => (
+                              <a
+                                key={`${item.kode}-beranda-perda-${idx}`}
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-2 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
+                              >
+                                <span>
+                                  UU/Perda{item.link_pembentukan.length > 1 ? ` #${idx + 1}` : ''}
+                                </span>
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            ))}
+
+                          {hasLinkBatas ? (
+                            <a
+                              href={item.link_batas}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3.5 py-2 text-xs font-semibold text-white bg-emerald-900 hover:bg-emerald-800 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
+                            >
+                              <span>Unduh / Buka Dokumen</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              className="px-3.5 py-2 text-xs font-semibold text-slate-500 bg-stone-200 border border-stone-300 rounded-lg cursor-not-allowed whitespace-nowrap"
+                            >
+                              Dokumen Belum Tersedia
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {/* KARTU AKSES CEPAT (QUICK ACCESS CARDS) */}
@@ -202,7 +426,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             Akses Cepat Layanan Portal SI-BATAS
           </h2>
           <p className="text-sm text-slate-600">
-            Pilih modul layanan untuk mengakses dokumen regulasi, berita acara pelacakan, pantauan kegiatan, atau peta interaktif.
+            Pilih modul layanan untuk mengakses direktori lengkap {stats.totalDesaKelurahan} desa/kelurahan pada halaman Produk Hukum &amp; Berita Acara, progres kegiatan, atau peta interaktif.
           </p>
         </div>
 
@@ -217,10 +441,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <FileText className="w-5 h-5" />
               </div>
               <h3 className="text-base font-bold text-slate-900 group-hover:text-white">
-                Produk Hukum
+                Produk Hukum ({stats.totalDesaKelurahan} Wilayah)
               </h3>
               <p className="text-sm text-slate-600 group-hover:text-emerald-100/85 mt-2 leading-relaxed">
-                Katalog Peraturan Bupati (Final) serta Rancangan Draf Perbup batas wilayah desa dan kelurahan.
+                Direktori lengkap {stats.totalDesa} Desa &amp; {stats.totalKelurahan} Kelurahan beserta Perbup Batas Wilayah dan UU/Perda Pembentukan.
               </p>
             </div>
             <div className="mt-5 pt-3 border-t border-stone-100 group-hover:border-emerald-800/80 flex items-center justify-between text-xs font-semibold text-emerald-800 group-hover:text-amber-400">
@@ -239,10 +463,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <FileCheck2 className="w-5 h-5" />
               </div>
               <h3 className="text-base font-bold text-slate-900 group-hover:text-white">
-                Berita Acara
+                Berita Acara ({stats.totalDesaKelurahan} Wilayah)
               </h3>
               <p className="text-sm text-slate-600 group-hover:text-emerald-100/85 mt-2 leading-relaxed">
-                Arsip kesepakatan pelacakan tapal batas definitif dan pantauan berkas mediasi dalam proses.
+                Arsip kesepakatan pelacakan tapal batas definitif ({stats.totalBaFinal} selesai) dan pantauan berkas mediasi dalam proses.
               </p>
             </div>
             <div className="mt-5 pt-3 border-t border-stone-100 group-hover:border-emerald-800/80 flex items-center justify-between text-xs font-semibold text-emerald-800 group-hover:text-amber-400">
@@ -264,7 +488,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 Progres Kegiatan
               </h3>
               <p className="text-sm text-slate-600 group-hover:text-emerald-100/85 mt-2 leading-relaxed">
-                Pantauan aktual capaian persentase segmen batas luar daerah (antar-kabupaten/kota) dan dalam daerah.
+                Pantauan aktual capaian persentase segmen batas luar daerah (antar-kabupaten/kota) dan {stats.totalKecamatan} kecamatan dalam daerah.
               </p>
             </div>
             <div className="mt-5 pt-3 border-t border-stone-100 group-hover:border-emerald-800/80 flex items-center justify-between text-xs font-semibold text-emerald-800 group-hover:text-amber-400">
@@ -294,85 +518,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </div>
           </button>
-        </div>
-      </section>
-
-      {/* PEMBARUAN DOKUMEN TERBARU */}
-      <section className="bg-white rounded-xl border border-stone-200 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-stone-200">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">
-              Arsip Dokumen & Regulasi Tapal Batas Terkini
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Klik pada salah satu dokumen untuk melihat rincian titik koordinat atau mengunduh berkas Google Drive.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => onNavigate('produk-hukum')}
-              className="text-xs font-semibold text-emerald-800 hover:text-emerald-950 transition-colors cursor-pointer whitespace-nowrap"
-            >
-              Lihat Semua Produk Hukum →
-            </button>
-          </div>
-        </div>
-
-        <div className="divide-y divide-stone-200">
-          {recentDocs.slice(0, 5).map((doc) => (
-            <div
-              key={doc.id}
-              className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-stone-50/80 px-2 rounded-lg transition-colors"
-            >
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                  <span className="font-mono text-slate-700 font-medium">{doc.id}</span>
-                  <span aria-hidden="true">·</span>
-                  <span>Kecamatan {doc.kecamatan}</span>
-                  <span aria-hidden="true">·</span>
-                  <span
-                    className={
-                      doc.status === 'Final'
-                        ? 'text-emerald-800 font-semibold'
-                        : 'text-amber-700 font-semibold'
-                    }
-                  >
-                    {doc.jenisDokumen === 'Perbup'
-                      ? doc.status === 'Final'
-                        ? 'Peraturan Bupati (Final)'
-                        : 'Draf Perbup (On-Going)'
-                      : doc.status === 'Final'
-                      ? 'Berita Acara (FINAL)'
-                      : 'Berita Acara (Dalam Proses)'}
-                  </span>
-                </div>
-                <h3 className="text-sm font-bold text-slate-900">
-                  {doc.namaDesa} — <span className="font-mono font-normal text-slate-700">{doc.nomorDokumen}</span>
-                </h3>
-                <p className="text-xs text-slate-600 line-clamp-1">{doc.keterangan}</p>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => onSelectDocument(doc)}
-                  className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
-                >
-                  Rincian
-                </button>
-                <a
-                  href={doc.linkDrive}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-900 hover:bg-emerald-800 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
-                >
-                  <span>Unduh / Buka</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              </div>
-            </div>
-          ))}
         </div>
       </section>
     </div>

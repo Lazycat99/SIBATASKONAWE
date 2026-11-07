@@ -1,78 +1,96 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  wilayahDataKonawe,
   INITIAL_DOKUMEN_BATAS,
   INITIAL_PROGRES_LUAR,
   INITIAL_PROGRES_DALAM,
   calculateDashboardStats,
   filterDocuments,
+  filterWilayahKonawe,
   getUniqueKecamatan,
   validateNewDocument,
   generateDataJsSource
 } from './boundaryData';
 
-test('calculateDashboardStats computes accurate counts from INITIAL_DOKUMEN_BATAS', () => {
-  const stats = calculateDashboardStats(INITIAL_DOKUMEN_BATAS);
-  assert.equal(stats.totalKecamatan, 6); // Padangguni, Tongauna, Unaaha, Uepai, Lambuya, Wawotobi
-  assert.equal(stats.totalDesaKelurahan, 11);
-  assert.equal(stats.totalPerbupFinal, 6);
-  assert.equal(stats.totalPerbupDraft, 4);
-  assert.equal(stats.totalBaFinal, 4);
-  assert.equal(stats.totalBaDraft, 2);
-  assert.equal(stats.totalDokumen, 16);
+test('calculateDashboardStats computes accurate dynamic counts from wilayahDataKonawe', () => {
+  const stats = calculateDashboardStats(wilayahDataKonawe);
+  assert.equal(stats.totalKecamatan, 28);
+  assert.equal(stats.totalDesaKelurahan, 348);
+  assert.equal(stats.totalDesa, 291);
+  assert.equal(stats.totalKelurahan, 57);
+  assert.equal(stats.totalPerbupFinal, 52);
+  assert.equal(stats.totalPerbupDraft, 2);
+  assert.equal(stats.totalPerdaPembentukan, 287);
+  assert.equal(stats.totalLinkPembentukan, 231);
+  assert.equal(stats.totalLinkBatas, 50);
 });
 
-test('filterDocuments filters Produk Hukum (Perbup) by kecamatan, status, and search query', () => {
+test('filterWilayahKonawe filters 348 WilayahKonawe records by kecamatan, category, and search query', () => {
+  const all = filterWilayahKonawe(wilayahDataKonawe, {});
+  assert.equal(all.length, 348);
+
+  const finalPerbup = filterWilayahKonawe(wilayahDataKonawe, {
+    category: 'PERBUP_FINAL'
+  });
+  assert.equal(finalPerbup.length, 52);
+
+  const draftPerbup = filterWilayahKonawe(wilayahDataKonawe, {
+    category: 'PERBUP_DRAFT'
+  });
+  assert.equal(draftPerbup.length, 2);
+
+  const unaahaOnly = filterWilayahKonawe(wilayahDataKonawe, {
+    kecamatan: 'Unaaha'
+  });
+  assert.equal(unaahaOnly.length, 12);
+
+  const searchKasumewuho = filterWilayahKonawe(wilayahDataKonawe, {
+    searchQuery: 'Kasumewuho'
+  });
+  assert.equal(searchKasumewuho.length, 1);
+  assert.equal(searchKasumewuho[0].kode, '74.02.03.2031');
+});
+
+test('filterDocuments maps all 348 villages for both Perbup and Berita Acara (BA) without exception', () => {
   const allPerbup = filterDocuments(INITIAL_DOKUMEN_BATAS, {
     jenisDokumen: 'Perbup'
   });
-  assert.equal(allPerbup.length, 10);
+  assert.equal(allPerbup.length, 348);
 
-  const finalPerbup = filterDocuments(INITIAL_DOKUMEN_BATAS, {
-    jenisDokumen: 'Perbup',
-    status: 'Final'
-  });
-  assert.equal(finalPerbup.length, 6);
-
-  const draftPerbupPadangguni = filterDocuments(INITIAL_DOKUMEN_BATAS, {
-    jenisDokumen: 'Perbup',
-    kecamatan: 'Padangguni',
-    status: 'Draft'
-  });
-  assert.equal(draftPerbupPadangguni.length, 1);
-  assert.equal(draftPerbupPadangguni[0].namaDesa, 'Desa Mokaleleo');
-
-  const searchTrimulya = filterDocuments(INITIAL_DOKUMEN_BATAS, {
-    jenisDokumen: 'Perbup',
-    searchQuery: 'trimulya'
-  });
-  assert.equal(searchTrimulya.length, 1);
-  assert.equal(searchTrimulya[0].id, 'DOK-001');
-});
-
-test('filterDocuments filters Berita Acara (BA) by status and search query', () => {
   const allBa = filterDocuments(INITIAL_DOKUMEN_BATAS, {
     jenisDokumen: 'BA'
   });
-  assert.equal(allBa.length, 6);
+  assert.equal(allBa.length, 348);
 
-  const draftBa = filterDocuments(INITIAL_DOKUMEN_BATAS, {
+  const finalBa = filterDocuments(INITIAL_DOKUMEN_BATAS, {
     jenisDokumen: 'BA',
-    status: 'Draft'
+    status: 'Final'
   });
-  assert.equal(draftBa.length, 2);
+  assert.equal(finalBa.length, 52);
 
-  const tetehakaBa = filterDocuments(INITIAL_DOKUMEN_BATAS, {
+  const nambeaboruBa = filterDocuments(INITIAL_DOKUMEN_BATAS, {
     jenisDokumen: 'BA',
-    searchQuery: 'Tetehaka'
+    searchQuery: 'Nambeaboru'
   });
-  assert.equal(tetehakaBa.length, 1);
-  assert.equal(tetehakaBa[0].kecamatan, 'Tongauna');
+  assert.equal(nambeaboruBa.length, 1);
+  assert.ok(nambeaboruBa[0].linkDrive.startsWith('https://drive.google.com/'));
+
+  const lambuyaBa = filterDocuments(INITIAL_DOKUMEN_BATAS, {
+    jenisDokumen: 'BA',
+    searchQuery: '74.02.01.1001'
+  });
+  assert.equal(lambuyaBa.length, 1);
+  assert.equal(lambuyaBa[0].linkDrive, '');
 });
 
-test('getUniqueKecamatan returns sorted list of unique kecamatan names', () => {
-  const list = getUniqueKecamatan(INITIAL_DOKUMEN_BATAS);
-  assert.deepEqual(list, ['Lambuya', 'Padangguni', 'Tongauna', 'Uepai', 'Unaaha', 'Wawotobi']);
+test('getUniqueKecamatan returns all 28 sorted unique kecamatan names from wilayahDataKonawe', () => {
+  const list = getUniqueKecamatan(wilayahDataKonawe);
+  assert.equal(list.length, 28);
+  assert.ok(list.includes('Unaaha'));
+  assert.ok(list.includes('Lambuya'));
+  assert.ok(list.includes('Lalonggasumeeto'));
+  assert.ok(list.includes('Tongauna Utara'));
 });
 
 test('validateNewDocument rejects invalid inputs and accepts valid document payload', () => {
@@ -107,13 +125,13 @@ test('validateNewDocument rejects invalid inputs and accepts valid document payl
   assert.equal(validDoc.valid, true);
 });
 
-test('generateDataJsSource generates valid JS code containing DATA_DOKUMEN_BATAS', () => {
+test('generateDataJsSource generates valid JS code containing wilayahDataKonawe', () => {
   const code = generateDataJsSource(
-    INITIAL_DOKUMEN_BATAS,
+    wilayahDataKonawe,
     INITIAL_PROGRES_LUAR,
     INITIAL_PROGRES_DALAM
   );
-  assert.ok(code.includes('const DATA_DOKUMEN_BATAS ='));
-  assert.ok(code.includes('Desa Trimulya'));
+  assert.ok(code.includes('const wilayahDataKonawe ='));
+  assert.ok(code.includes('74.02.01.1001'));
   assert.ok(code.includes('Kota Kendari - Kab. Konawe'));
 });

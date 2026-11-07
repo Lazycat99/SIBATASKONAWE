@@ -103,6 +103,21 @@ export function generateStandaloneIndexHtml(): string {
         </div>
       </div>
 
+      <!-- Kolom Pencarian Wilayah di Beranda (Live Filtering) -->
+      <div class="bg-white rounded-2xl border border-stone-200 p-6 sm:p-8">
+        <div class="max-w-3xl mx-auto text-center">
+          <p class="text-xs font-mono uppercase tracking-widest text-emerald-800 font-semibold">PENCARIAN CEPAT PANGKALAN DATA WILAYAH</p>
+          <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Cari Desa, Kelurahan, atau Kecamatan</h2>
+          <p class="text-sm text-slate-600 mt-2">Ketik nama Desa/Kelurahan atau Kecamatan untuk menampilkan kartu wilayah dan tombol unduh dokumennya secara dinamis.</p>
+          <div class="mt-6">
+            <input id="search-beranda" type="search" oninput="renderBerandaSearch()" placeholder="Ketik nama Desa / Kelurahan atau Kecamatan (contoh: Unaaha, Kasumewuho, Lambuya)..." class="w-full px-5 py-4 bg-stone-50 focus:bg-white rounded-xl border-2 border-stone-200 focus:border-emerald-800 text-base text-slate-900 focus:outline-none transition-colors" />
+          </div>
+        </div>
+        <div id="beranda-search-container" class="hidden mt-8 pt-6 border-t border-stone-200">
+          <div id="beranda-search-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+        </div>
+      </div>
+
       <!-- Quick Access Cards -->
       <div>
         <h2 class="text-xl font-bold text-slate-900 mb-4">Akses Cepat Layanan Informasi Batas</h2>
@@ -267,6 +282,10 @@ export function generateStandaloneIndexHtml(): string {
     let currentPerbupStatus = 'ALL';
     let currentBaStatus = 'ALL';
 
+    function cleanKecamatan(raw) {
+      return String(raw || '').replace(/^Kecamatan\\s+/i, '').trim();
+    }
+
     function switchTab(tabId) {
       document.querySelectorAll('.tab-section').forEach(el => el.classList.remove('active'));
       const target = document.getElementById('tab-' + tabId);
@@ -275,25 +294,30 @@ export function generateStandaloneIndexHtml(): string {
     }
 
     function initPortal() {
-      const store = window.SI_BATAS_DATA || { dokumen: [], progresLuar: [], progresDalam: [] };
-      const docs = store.dokumen;
+      const store = window.SI_BATAS_DATA || { wilayah: window.wilayahDataKonawe || [], progresLuar: [], progresDalam: [] };
+      const wilayah = store.wilayah || window.wilayahDataKonawe || [];
 
-      // Hitung Statistik Otomatis
-      const kecSet = new Set(docs.map(d => d.kecamatan));
-      const desaSet = new Set(docs.map(d => d.kecamatan + '::' + d.namaDesa));
-      const perbupFinal = docs.filter(d => d.jenisDokumen === 'Perbup' && d.status === 'Final').length;
-      const baFinal = docs.filter(d => d.jenisDokumen === 'BA' && d.status === 'Final').length;
+      // Hitung Statistik Otomatis secara Dinamis dari wilayahDataKonawe (348 Desa/Kelurahan, 28 Kecamatan)
+      const kecSet = new Set(wilayah.map(w => cleanKecamatan(w.kecamatan).toLowerCase()).filter(Boolean));
+      const perbupFinal = wilayah.filter(w => {
+        const ket = (w.keterangan_batas || '').trim().toLowerCase();
+        return ket.length > 0 && !ket.includes('draf') && !ket.includes('tahap penyusunan') && !ket.startsWith('ba ') && !ket.includes('berita acara');
+      }).length;
+      const baFinal = wilayah.filter(w => {
+        const ket = (w.keterangan_batas || '').trim().toLowerCase();
+        return ket.length > 0 && !ket.includes('draf') && !ket.includes('tahap penyusunan');
+      }).length;
 
       document.getElementById('stat-kecamatan').textContent = kecSet.size;
-      document.getElementById('stat-desa').textContent = desaSet.size;
+      document.getElementById('stat-desa').textContent = wilayah.length;
       document.getElementById('stat-perbup-final').textContent = perbupFinal;
       document.getElementById('stat-ba-final').textContent = baFinal;
 
       // Isi Dropdown Kecamatan
-      const sortedKec = Array.from(kecSet).sort();
+      const uniqueKecNames = Array.from(new Set(wilayah.map(w => cleanKecamatan(w.kecamatan)).filter(Boolean))).sort();
       ['kecamatan-perbup', 'kecamatan-ba'].forEach(selectId => {
         const sel = document.getElementById(selectId);
-        sortedKec.forEach(k => {
+        uniqueKecNames.forEach(k => {
           const opt = document.createElement('option');
           opt.value = k;
           opt.textContent = 'Kecamatan ' + k;
@@ -318,62 +342,139 @@ export function generateStandaloneIndexHtml(): string {
       renderBa();
     }
 
+    function renderBerandaSearch() {
+      const wilayah = (window.SI_BATAS_DATA && window.SI_BATAS_DATA.wilayah) || window.wilayahDataKonawe || [];
+      const q = (document.getElementById('search-beranda').value || '').trim().toLowerCase();
+      const container = document.getElementById('beranda-search-container');
+      const grid = document.getElementById('beranda-search-grid');
+
+      if (!q) {
+        container.classList.add('hidden');
+        grid.innerHTML = '';
+        return;
+      }
+
+      const filtered = wilayah.filter(w => {
+        const kecClean = cleanKecamatan(w.kecamatan).toLowerCase();
+        const full = (w.status + ' ' + w.nama_wilayah).toLowerCase();
+        return full.includes(q) || kecClean.includes(q) || w.kode.toLowerCase().includes(q) || (w.keterangan_batas || '').toLowerCase().includes(q);
+      });
+
+      container.classList.remove('hidden');
+      grid.innerHTML = filtered.map(w => {
+        const kecClean = cleanKecamatan(w.kecamatan);
+        const ket = (w.keterangan_batas || '').trim();
+        const hasLink = Boolean(w.link_batas && w.link_batas.trim().length > 0);
+        return \`
+        <div class="bg-stone-50 rounded-xl p-5 border border-stone-200 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-xs text-slate-500 mb-2">
+              <span>Kecamatan \${kecClean}</span>
+              <span class="font-mono font-semibold text-slate-800">\${w.kode}</span>
+            </div>
+            <h3 class="text-base font-bold text-slate-900">\${w.status} \${w.nama_wilayah}</h3>
+            <p class="text-xs text-slate-600 mt-2">\${ket || w.keterangan_pembentukan || 'Belum Terbit Perbup Batas Wilayah'}</p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-stone-200 flex justify-end">
+            \${hasLink
+              ? \`<a href="\${w.link_batas}" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg">Unduh / Buka Dokumen</a>\`
+              : \`<button type="button" disabled class="px-3.5 py-2 bg-stone-200 text-slate-500 border border-stone-300 text-xs font-semibold rounded-lg cursor-not-allowed">Dokumen Belum Tersedia</button>\`
+            }
+          </div>
+        </div>\`;
+      }).join('');
+    }
+
     function renderPerbup() {
-      const docs = (window.SI_BATAS_DATA || { dokumen: [] }).dokumen;
+      const wilayah = (window.SI_BATAS_DATA && window.SI_BATAS_DATA.wilayah) || window.wilayahDataKonawe || [];
       const q = (document.getElementById('search-perbup').value || '').toLowerCase();
       const kec = document.getElementById('kecamatan-perbup').value;
-      const filtered = docs.filter(d =>
-        d.jenisDokumen === 'Perbup' &&
-        (kec === 'ALL' || d.kecamatan === kec) &&
-        (currentPerbupStatus === 'ALL' || d.status === currentPerbupStatus) &&
-        (!q || d.namaDesa.toLowerCase().includes(q) || d.nomorDokumen.toLowerCase().includes(q))
-      );
+
+      const filtered = wilayah.filter(w => {
+        const kecClean = cleanKecamatan(w.kecamatan);
+        const ket = (w.keterangan_batas || '').trim();
+        const lower = ket.toLowerCase();
+        const isDraft = lower.includes('draf') || lower.includes('tahap penyusunan');
+        const isBaOnly = lower.startsWith('ba ') || lower.includes('berita acara');
+        const isFinal = ket.length > 0 && !isDraft && !isBaOnly;
+
+        if (kec !== 'ALL' && kecClean !== kec) return false;
+        if (currentPerbupStatus === 'Final' && !isFinal) return false;
+        if (currentPerbupStatus === 'Draft' && !isDraft) return false;
+        if (q && !w.nama_wilayah.toLowerCase().includes(q) && !w.kode.toLowerCase().includes(q) && !ket.toLowerCase().includes(q)) return false;
+        return true;
+      });
 
       const tbody = document.getElementById('tbody-perbup');
-      tbody.innerHTML = filtered.map(d => \`
+      tbody.innerHTML = filtered.map(w => {
+        const kecClean = cleanKecamatan(w.kecamatan);
+        const ket = (w.keterangan_batas || '').trim();
+        const hasLink = Boolean(w.link_batas && w.link_batas.trim().length > 0);
+        const isDraft = ket.toLowerCase().includes('draf') || ket.toLowerCase().includes('tahap penyusunan');
+        return \`
         <tr class="hover:bg-stone-50">
-          <td class="py-3.5 px-4 font-semibold text-slate-900">\${d.namaDesa}</td>
-          <td class="py-3.5 px-4 text-slate-600">Kec. \${d.kecamatan}</td>
+          <td class="py-3.5 px-4 font-semibold text-slate-900">\${w.status} \${w.nama_wilayah} <span class="block text-xs font-mono text-slate-500">\${w.kode}</span></td>
+          <td class="py-3.5 px-4 text-slate-600">Kec. \${kecClean}</td>
           <td class="py-3.5 px-4">
-            <span class="\${d.status === 'Final' ? 'text-emerald-800 font-semibold' : 'text-amber-700 font-semibold'}">
-              \${d.status === 'Final' ? 'Peraturan Bupati (Final)' : 'Draf Perbup (On-Going)'}
+            <span class="\${ket ? (isDraft ? 'text-amber-700 font-semibold' : 'text-emerald-800 font-semibold') : 'text-slate-500'}">
+              \${ket ? (isDraft ? 'Draf Perbup (On-Going)' : 'Peraturan Bupati (Final)') : 'Belum Terbit Perbup'}
             </span>
           </td>
-          <td class="py-3.5 px-4 font-mono text-xs text-slate-700">\${d.nomorDokumen}</td>
+          <td class="py-3.5 px-4 font-mono text-xs text-slate-700">\${ket || w.keterangan_pembentukan || '—'}</td>
           <td class="py-3.5 px-4 text-right">
-            <a href="\${d.linkDrive}" target="_blank" rel="noopener noreferrer" class="inline-block px-3 py-1.5 bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-medium rounded-lg">Unduh / Buka Dokumen</a>
+            \${hasLink
+              ? \`<a href="\${w.link_batas}" target="_blank" rel="noopener noreferrer" class="inline-block px-3.5 py-2 bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg">Unduh / Buka Dokumen</a>\`
+              : \`<button type="button" disabled class="inline-block px-3.5 py-2 bg-stone-200 text-slate-500 border border-stone-300 text-xs font-semibold rounded-lg cursor-not-allowed">Dokumen Belum Tersedia</button>\`
+            }
           </td>
-        </tr>
-      \`).join('');
+        </tr>\`;
+      }).join('');
     }
 
     function renderBa() {
-      const docs = (window.SI_BATAS_DATA || { dokumen: [] }).dokumen;
+      const wilayah = (window.SI_BATAS_DATA && window.SI_BATAS_DATA.wilayah) || window.wilayahDataKonawe || [];
       const q = (document.getElementById('search-ba').value || '').toLowerCase();
       const kec = document.getElementById('kecamatan-ba').value;
-      const filtered = docs.filter(d =>
-        d.jenisDokumen === 'BA' &&
-        (kec === 'ALL' || d.kecamatan === kec) &&
-        (currentBaStatus === 'ALL' || d.status === currentBaStatus) &&
-        (!q || d.namaDesa.toLowerCase().includes(q) || d.nomorDokumen.toLowerCase().includes(q))
-      );
+
+      const filtered = wilayah.filter(w => {
+        const kecClean = cleanKecamatan(w.kecamatan);
+        const ket = (w.keterangan_batas || '').trim();
+        const lower = ket.toLowerCase();
+        const isDraft = lower.includes('draf') || lower.includes('tahap penyusunan');
+        const isFinal = ket.length > 0 && !isDraft;
+
+        if (kec !== 'ALL' && kecClean !== kec) return false;
+        if (currentBaStatus === 'Final' && !isFinal) return false;
+        if (currentBaStatus === 'Draft' && isFinal) return false;
+        if (q && !w.nama_wilayah.toLowerCase().includes(q) && !w.kode.toLowerCase().includes(q) && !ket.toLowerCase().includes(q)) return false;
+        return true;
+      });
 
       const tbody = document.getElementById('tbody-ba');
-      tbody.innerHTML = filtered.map(d => \`
+      tbody.innerHTML = filtered.map(w => {
+        const kecClean = cleanKecamatan(w.kecamatan);
+        const ket = (w.keterangan_batas || '').trim();
+        const hasLink = Boolean(w.link_batas && w.link_batas.trim().length > 0);
+        const isDraft = ket.toLowerCase().includes('draf') || ket.toLowerCase().includes('tahap penyusunan');
+        const isFinal = ket.length > 0 && !isDraft;
+        return \`
         <tr class="hover:bg-stone-50">
-          <td class="py-3.5 px-4 font-semibold text-slate-900">\${d.namaDesa}</td>
-          <td class="py-3.5 px-4 text-slate-600">Kec. \${d.kecamatan}</td>
+          <td class="py-3.5 px-4 font-semibold text-slate-900">\${w.status} \${w.nama_wilayah} <span class="block text-xs font-mono text-slate-500">\${w.kode}</span></td>
+          <td class="py-3.5 px-4 text-slate-600">Kec. \${kecClean}</td>
           <td class="py-3.5 px-4">
-            <span class="\${d.status === 'Final' ? 'text-emerald-800 font-semibold' : 'text-amber-700 font-semibold'}">
-              \${d.status === 'Final' ? 'Berita Acara (FINAL)' : 'Berita Acara (Dalam Proses)'}
+            <span class="\${isFinal ? 'text-emerald-800 font-semibold' : 'text-amber-700 font-semibold'}">
+              \${isFinal ? 'Berita Acara (FINAL)' : 'Berita Acara (Dalam Proses)'}
             </span>
           </td>
-          <td class="py-3.5 px-4 font-mono text-xs text-slate-700">\${d.nomorDokumen}</td>
+          <td class="py-3.5 px-4 font-mono text-xs text-slate-700">\${ket || 'Belum Tersedia BA'}</td>
           <td class="py-3.5 px-4 text-right">
-            <a href="\${d.linkDrive}" target="_blank" rel="noopener noreferrer" class="inline-block px-3 py-1.5 bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-medium rounded-lg">Unduh / Buka Dokumen</a>
+            \${hasLink
+              ? \`<a href="\${w.link_batas}" target="_blank" rel="noopener noreferrer" class="inline-block px-3.5 py-2 bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg">Unduh / Buka Dokumen</a>\`
+              : \`<button type="button" disabled class="inline-block px-3.5 py-2 bg-stone-200 text-slate-500 border border-stone-300 text-xs font-semibold rounded-lg cursor-not-allowed">Dokumen Belum Tersedia</button>\`
+            }
           </td>
-        </tr>
-      \`).join('');
+        </tr>\`;
+      }).join('');
     }
 
     function renderProgres() {
