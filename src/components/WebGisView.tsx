@@ -89,7 +89,7 @@ export const WebGisView: React.FC<WebGisViewProps> = ({
             src="https://www.google.com/maps/d/embed?mid=1DN2pY2ghIJTvecVBrDwlLl3ZscJxrf4&ehbc=2E312F"
             width="100%"
             height="550"
-            style={{ border: 0 }}
+            className="w-full h-[550px] border-0"
             allowFullScreen
             loading="lazy"
             title="Peta WebGIS Batas Administrasi Kabupaten Konawe"
