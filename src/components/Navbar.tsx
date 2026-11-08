@@ -34,11 +34,10 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="sticky top-0 z-40 bg-emerald-950 text-white border-b border-emerald-900 shadow-sm">
       {/* Strict 3-Zone Top Bar Contract */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-6">
-        {/* Zone 1: Dual Official Logos side-by-side */}
         <div className="flex items-center gap-3">
-          <img src="/Lambang_Kabupaten_Konawe.png" alt="Pemkab Konawe" className="h-10 w-auto" />
-          <div className="h-8 w-px bg-emerald-700/50"></div>
-          <img src="/Logo_SIBATAS_Murni.png" alt="SI-BATAS Konawe" className="h-10 w-auto" />
+          <img src="/Lambang_Kabupaten_Konawe.png" alt="Pemkab Konawe" className="h-10 w-auto object-contain" />
+          <div className="h-8 w-px bg-emerald-700/50 mx-2"></div>
+          <img src="/Logo_SIBATAS_Murni.png" alt="SI-BATAS Konawe" className="h-10 w-auto object-contain" />
         </div>
 
         {/* Zone 2: 5 concise single-line nav links — rigid, fast, zero entrance animation */}

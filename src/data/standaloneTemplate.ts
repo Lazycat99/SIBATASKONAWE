@@ -40,9 +40,11 @@ export function generateStandaloneIndexHtml(): string {
   <!-- STICKY NAVBAR (3-Zone Top Bar Contract) -->
   <header class="sticky top-0 z-40 bg-emerald-950 text-white border-b border-emerald-900/80">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-8">
-      <a href="#beranda" onclick="switchTab('beranda'); return false;" class="text-lg font-bold tracking-tight text-white whitespace-nowrap shrink-0">
-        SI-BATAS KONAWE
-      </a>
+      <div class="flex items-center gap-3">
+        <img src="/Lambang_Kabupaten_Konawe.png" alt="Pemkab Konawe" class="h-10 w-auto object-contain" />
+        <div class="h-8 w-px bg-emerald-700/50 mx-2"></div>
+        <img src="/Logo_SIBATAS_Murni.png" alt="SI-BATAS Konawe" class="h-10 w-auto object-contain" />
+      </div>
 
       <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-emerald-100/80" aria-label="Navigasi Utama">
         <button onclick="switchTab('beranda')" data-nav="beranda" class="nav-link py-1 border-b-2 border-amber-400 text-white whitespace-nowrap shrink-0 transition-colors">Beranda</button>
