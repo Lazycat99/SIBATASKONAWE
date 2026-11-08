@@ -11,6 +11,7 @@ import {
   Clock
 } from 'lucide-react';
 import {
+  AUTHORIZATION_CODE,
   DokumenBatas,
   NewDocumentInput,
   ProgresBatasLuar,
@@ -41,12 +42,20 @@ export const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
   const [linkDrive, setLinkDrive] = useState('https://drive.google.com/drive/folders/');
   const [koordinatUtama, setKoordinatUtama] = useState('');
   const [keterangan, setKeterangan] = useState('');
+  const [sandiOtorisasi, setSandiOtorisasi] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
+  const isAuthorized = sandiOtorisasi === AUTHORIZATION_CODE;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (sandiOtorisasi !== AUTHORIZATION_CODE) {
+      setErrorMsg('Sandi Salah: Sandi Otorisasi tidak sesuai.');
+      return;
+    }
+
     const payload: NewDocumentInput = {
       namaDesa,
       kecamatan,
@@ -55,7 +64,8 @@ export const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
       nomorDokumen,
       linkDrive,
       koordinatUtama,
-      keterangan
+      keterangan,
+      sandiOtorisasi
     };
 
     const validation = validateNewDocument(payload);
@@ -69,6 +79,7 @@ export const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
     setNomorDokumen('');
     setKoordinatUtama('');
     setKeterangan('');
+    setSandiOtorisasi('');
     setErrorMsg(null);
     onClose();
   };
@@ -87,7 +98,7 @@ export const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
               Tambah Baris Data Dokumen Baru
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Menambahkan rekaman ke dalam basis data aktif <code className="font-mono">data.js</code>
+              Menambahkan rekaman baru ke dalam pangkalan data wilayah Kabupaten Konawe
             </p>
           </div>
           <button
@@ -104,6 +115,7 @@ export const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
           {errorMsg && (
             <div
               role="alert"
+              data-testid="modal-add-error"
               className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs font-medium text-red-800"
             >
               {errorMsg}
@@ -234,6 +246,34 @@ export const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
             />
           </div>
 
+          {/* PROTEKSI KEAMANAN KRITIS: INPUT WAJIB SANDI OTORISASI DI BAGIAN PALING BAWAH */}
+          <div className="pt-2 border-t border-stone-200">
+            <label
+              htmlFor="input-sandi-otorisasi"
+              className="block text-xs font-bold text-slate-800 mb-1"
+            >
+              Sandi Otorisasi *
+            </label>
+            <input
+              id="input-sandi-otorisasi"
+              data-testid="input-sandi-otorisasi"
+              type="password"
+              required
+              value={sandiOtorisasi}
+              onChange={(e) => {
+                setSandiOtorisasi(e.target.value);
+                if (errorMsg) setErrorMsg(null);
+              }}
+              placeholder="Masukkan Sandi Otorisasi resmi petugas..."
+              className="w-full px-3.5 py-2 rounded-lg border border-stone-300 text-sm font-mono focus:outline-none focus:border-emerald-700"
+            />
+            {sandiOtorisasi.length > 0 && !isAuthorized && (
+              <p role="alert" className="text-xs font-semibold text-red-700 mt-1">
+                Sandi Salah — masukkan kode otorisasi resmi untuk mengaktifkan tombol simpan.
+              </p>
+            )}
+          </div>
+
           <div className="pt-4 border-t border-stone-200 flex items-center justify-end gap-3">
             <button
               type="button"
@@ -244,7 +284,9 @@ export const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-semibold text-white bg-emerald-900 hover:bg-emerald-800 rounded-lg transition-colors cursor-pointer"
+              data-testid="btn-submit-document"
+              disabled={!isAuthorized}
+              className="px-5 py-2 text-xs font-semibold text-white bg-emerald-900 hover:bg-emerald-800 disabled:bg-stone-300 disabled:text-slate-500 disabled:cursor-not-allowed rounded-lg transition-colors cursor-pointer"
             >
               Simpan ke Basis Data
             </button>

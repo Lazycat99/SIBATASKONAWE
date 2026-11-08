@@ -106,7 +106,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
           {progresLuar.map((item) => (
             <div
               key={item.id}
-              className="bg-white rounded-xl p-6 border border-stone-200 flex flex-col justify-between"
+              className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg rounded-xl bg-white shadow-md border border-gray-100 p-6 flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-start justify-between gap-4">
@@ -243,7 +243,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
           {filteredDalam.map((item) => (
             <div
               key={item.id}
-              className="bg-white rounded-xl p-6 border border-stone-200 flex flex-col justify-between"
+              className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg rounded-xl bg-white shadow-md border border-gray-100 p-6 flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-start justify-between gap-4">

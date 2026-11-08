@@ -61,84 +61,59 @@ export function generateStandaloneIndexHtml(): string {
   </header>
 
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- A. BERANDA -->
-    <section id="tab-beranda" class="tab-section active space-y-10">
-      <div class="bg-emerald-950 text-white rounded-2xl p-8 lg:p-12 border border-emerald-900">
-        <p class="text-xs font-mono uppercase tracking-widest text-amber-400 mb-3">Pemerintah Kabupaten Konawe · Provinsi Sulawesi Tenggara</p>
-        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">SI-BATAS KONAWE</h1>
-        <p class="text-base sm:text-lg text-emerald-100/90 max-w-3xl leading-relaxed mb-8">
-          Sistem Informasi Tapal Batas Wilayah Berbasis Cloud - Bagian Tata Pemerintahan Sekretariat Daerah Kabupaten Konawe.
-        </p>
-        <div class="flex flex-wrap gap-3">
-          <button onclick="switchTab('produk-hukum')" class="px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-semibold text-sm rounded-lg transition-colors">
-            Telusuri Produk Hukum
-          </button>
-          <button onclick="switchTab('webgis')" class="px-5 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white font-medium text-sm rounded-lg border border-emerald-700 transition-colors">
-            Eksplorasi Peta Interaktif
+    <!-- A. BERANDA (MINIMALIS: DASBOR STATISTIK DI ATAS + KOLOM PENCARIAN WILAYAH DI BAWAHNYA) -->
+    <section id="tab-beranda" class="tab-section active space-y-8">
+      <!-- 1. Dasbor Ringkasan Statistik (Posisi Teratas Beranda) -->
+      <div>
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-5">
+          <div>
+            <p class="text-xs text-emerald-800 font-medium mb-1">SI-BATAS KONAWE · Bagian Tata Pemerintahan Setda Kab. Konawe</p>
+            <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Dasbor Ringkasan Statistik</h1>
+            <p class="text-sm text-slate-600 mt-1">Rekapitulasi dinamis pangkalan data tapal batas wilayah Kabupaten Konawe.</p>
+          </div>
+          <button onclick="switchTab('produk-hukum')" class="px-4 py-2.5 text-xs font-semibold text-emerald-900 bg-white hover:bg-emerald-50 border border-stone-200 rounded-lg transition-colors self-start sm:self-auto whitespace-nowrap">
+            Buka Direktori Lengkap di Tab Produk Hukum →
           </button>
         </div>
-      </div>
 
-      <!-- Counter Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div class="bg-white rounded-xl p-6 border border-stone-200">
-          <p class="text-xs text-slate-500 font-medium">Total Kecamatan Terdata</p>
-          <p id="stat-kecamatan" class="text-3xl font-bold text-slate-900 font-mono tabular-nums mt-2">0</p>
-          <p class="text-xs text-slate-500 mt-2">Wilayah Administrasi Kecamatan</p>
-        </div>
-        <div class="bg-white rounded-xl p-6 border border-stone-200">
-          <p class="text-xs text-slate-500 font-medium">Total Desa / Kelurahan</p>
-          <p id="stat-desa" class="text-3xl font-bold text-slate-900 font-mono tabular-nums mt-2">0</p>
-          <p class="text-xs text-slate-500 mt-2">Arsip Dokumen Batas Wilayah</p>
-        </div>
-        <div class="bg-white rounded-xl p-6 border border-stone-200">
-          <p class="text-xs text-slate-500 font-medium">Peraturan Bupati (Final)</p>
-          <p id="stat-perbup-final" class="text-3xl font-bold text-emerald-800 font-mono tabular-nums mt-2">0</p>
-          <p class="text-xs text-slate-500 mt-2">Produk Hukum Definitif</p>
-        </div>
-        <div class="bg-white rounded-xl p-6 border border-stone-200">
-          <p class="text-xs text-slate-500 font-medium">Berita Acara Selesai</p>
-          <p id="stat-ba-final" class="text-3xl font-bold text-amber-700 font-mono tabular-nums mt-2">0</p>
-          <p class="text-xs text-slate-500 mt-2">Kesepakatan Tapal Batas Final</p>
-        </div>
-      </div>
-
-      <!-- Kolom Pencarian Wilayah di Beranda (Live Filtering) -->
-      <div class="bg-white rounded-2xl border border-stone-200 p-6 sm:p-8">
-        <div class="max-w-3xl mx-auto text-center">
-          <p class="text-xs font-mono uppercase tracking-widest text-emerald-800 font-semibold">PENCARIAN CEPAT PANGKALAN DATA WILAYAH</p>
-          <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Cari Desa, Kelurahan, atau Kecamatan</h2>
-          <p class="text-sm text-slate-600 mt-2">Ketik nama Desa/Kelurahan atau Kecamatan untuk menampilkan kartu wilayah dan tombol unduh dokumennya secara dinamis.</p>
-          <div class="mt-6">
-            <input id="search-beranda" type="search" oninput="renderBerandaSearch()" placeholder="Ketik nama Desa / Kelurahan atau Kecamatan (contoh: Unaaha, Kasumewuho, Lambuya)..." class="w-full px-5 py-4 bg-stone-50 focus:bg-white rounded-xl border-2 border-stone-200 focus:border-emerald-800 text-base text-slate-900 focus:outline-none transition-colors" />
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div class="bg-white rounded-xl p-6 border border-stone-200">
+            <p class="text-xs text-slate-500 font-medium">Total Kecamatan Terdata</p>
+            <p id="stat-kecamatan" class="text-3xl font-bold text-slate-900 font-mono tabular-nums mt-2">0</p>
+            <p class="text-xs text-slate-500 mt-4 pt-3 border-t border-stone-100">Wilayah Administrasi Kecamatan</p>
+          </div>
+          <div class="bg-white rounded-xl p-6 border border-stone-200">
+            <p class="text-xs text-slate-500 font-medium">Total Desa / Kelurahan</p>
+            <p id="stat-desa" class="text-3xl font-bold text-slate-900 font-mono tabular-nums mt-2">0</p>
+            <p class="text-xs text-slate-500 mt-4 pt-3 border-t border-stone-100">Arsip Dokumen Batas Wilayah</p>
+          </div>
+          <div class="bg-white rounded-xl p-6 border border-stone-200">
+            <p class="text-xs text-slate-500 font-medium">Jumlah Perbup Final</p>
+            <p id="stat-perbup-final" class="text-3xl font-bold text-emerald-800 font-mono tabular-nums mt-2">0</p>
+            <p class="text-xs text-emerald-800 font-medium mt-4 pt-3 border-t border-stone-100">Produk Hukum Definitif</p>
+          </div>
+          <div class="bg-white rounded-xl p-6 border border-stone-200">
+            <p class="text-xs text-slate-500 font-medium">Berita Acara Selesai</p>
+            <p id="stat-ba-final" class="text-3xl font-bold text-amber-700 font-mono tabular-nums mt-2">0</p>
+            <p class="text-xs text-amber-800 font-medium mt-4 pt-3 border-t border-stone-100">Kesepakatan Tapal Batas Final</p>
           </div>
         </div>
-        <div id="beranda-search-container" class="hidden mt-8 pt-6 border-t border-stone-200">
-          <div id="beranda-search-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+      </div>
+
+      <!-- 2. Kolom Pencarian Wilayah (Tepat di Bawah Dasbor Statistik) -->
+      <div class="bg-white rounded-2xl border border-stone-200 p-6 sm:p-10">
+        <div class="max-w-3xl mx-auto text-center">
+          <h2 class="text-xl sm:text-2xl font-bold text-slate-900">Kolom Pencarian Wilayah</h2>
+          <p class="text-sm text-slate-600 mt-1.5">Ketik nama Desa, Kelurahan, atau Kecamatan untuk menampilkan kartu wilayah dan tombol unduh dokumennya secara dinamis.</p>
+          <div class="mt-6">
+            <input id="search-beranda" type="text" role="searchbox" oninput="renderBerandaSearch()" placeholder="Ketik nama Desa, Kelurahan, atau Kecamatan (contoh: Kasumewuho, Unaaha)..." class="w-full px-5 py-4 bg-stone-50 focus:bg-white rounded-xl border border-stone-300 focus:border-emerald-800 text-base text-slate-900 focus:outline-none transition-colors" />
+          </div>
         </div>
       </div>
 
-      <!-- Quick Access Cards -->
-      <div>
-        <h2 class="text-xl font-bold text-slate-900 mb-4">Akses Cepat Layanan Informasi Batas</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <button onclick="switchTab('produk-hukum')" class="text-left bg-white hover:bg-emerald-50/40 p-6 rounded-xl border border-stone-200 hover:border-emerald-700 transition-all group">
-            <h3 class="text-base font-bold text-slate-900 group-hover:text-emerald-900">Produk Hukum</h3>
-            <p class="text-sm text-slate-600 mt-2 leading-relaxed">Unduh Peraturan Bupati definitif dan pantau draf rancangan batas desa/kelurahan.</p>
-          </button>
-          <button onclick="switchTab('berita-acara')" class="text-left bg-white hover:bg-emerald-50/40 p-6 rounded-xl border border-stone-200 hover:border-emerald-700 transition-all group">
-            <h3 class="text-base font-bold text-slate-900 group-hover:text-emerald-900">Berita Acara</h3>
-            <p class="text-sm text-slate-600 mt-2 leading-relaxed">Arsip Berita Acara kesepakatan pelacakan tapal batas dan mediasi titik koordinat.</p>
-          </button>
-          <button onclick="switchTab('progres')" class="text-left bg-white hover:bg-emerald-50/40 p-6 rounded-xl border border-stone-200 hover:border-emerald-700 transition-all group">
-            <h3 class="text-base font-bold text-slate-900 group-hover:text-emerald-900">Progres Kegiatan</h3>
-            <p class="text-sm text-slate-600 mt-2 leading-relaxed">Pantauan persentase pelacakan batas luar daerah (antar-kabupaten/kota) dan dalam daerah.</p>
-          </button>
-          <button onclick="switchTab('webgis')" class="text-left bg-white hover:bg-emerald-50/40 p-6 rounded-xl border border-stone-200 hover:border-emerald-700 transition-all group">
-            <h3 class="text-base font-bold text-slate-900 group-hover:text-emerald-900">Peta WebGIS</h3>
-            <p class="text-sm text-slate-600 mt-2 leading-relaxed">Visualisasi spasial interaktif garis batas administrasi tingkat kecamatan dan desa.</p>
-          </button>
-        </div>
+      <!-- 3. Hasil Pencarian Dinamis (Bersih jika kolom pencarian kosong) -->
+      <div id="beranda-search-container" class="hidden space-y-4">
+        <div id="beranda-search-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
       </div>
     </section>
 

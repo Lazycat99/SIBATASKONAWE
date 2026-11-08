@@ -551,7 +551,7 @@ export const DocumentCatalogView: React.FC<DocumentCatalogViewProps> = ({
               return (
                 <div
                   key={item.kode}
-                  className="bg-white rounded-xl p-6 border border-stone-200 flex flex-col justify-between"
+                  className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg rounded-xl bg-white shadow-md border border-gray-100 p-6 flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2 text-xs text-slate-500 mb-2">
@@ -762,7 +762,7 @@ export const DocumentCatalogView: React.FC<DocumentCatalogViewProps> = ({
             return (
               <div
                 key={doc.id}
-                className="bg-white rounded-xl p-6 border border-stone-200 flex flex-col justify-between"
+                className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg rounded-xl bg-white shadow-md border border-gray-100 p-6 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 text-xs text-slate-500 mb-2">

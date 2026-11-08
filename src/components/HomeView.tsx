@@ -1,49 +1,79 @@
 import React, { useState, useMemo } from 'react';
 import {
   ArrowRight,
-  FileText,
-  FileCheck2,
-  Activity,
-  Map,
-  Code2,
   ExternalLink,
   Search,
   X,
   CheckCircle2,
-  Clock
+  Clock,
+  Map,
+  Compass,
+  Layers
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  LabelList
+} from 'recharts';
 import {
   DashboardStats,
   DokumenBatas,
   WilayahKonawe,
+  calculateBoundaryProgressRatio,
+  calculateTopKecamatanProgress,
   filterWilayahKonawe,
-  formatNamaKecamatan
+  formatNamaKecamatan,
+  getFeaturedFinalWilayah
 } from '../data/boundaryData';
 import { NavTab } from './Navbar';
 
 interface HomeViewProps {
   stats: DashboardStats;
   wilayahList: WilayahKonawe[];
-  recentDocs: DokumenBatas[];
+  recentDocs?: DokumenBatas[];
   onNavigate: (tab: NavTab) => void;
-  onSelectDocument: (doc: DokumenBatas) => void;
+  onSelectDocument?: (doc: DokumenBatas) => void;
   onSelectWilayah: (item: WilayahKonawe) => void;
-  onOpenVercelCode: () => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
   stats,
   wilayahList,
   onNavigate,
-  onSelectWilayah,
-  onOpenVercelCode
+  onSelectWilayah
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const trimmedQuery = searchQuery.trim();
-  const isSearching = trimmedQuery.length > 0;
+  const isSearching = trimmedQuery.length >= 1;
 
-  // Live filtering: Hanya jalankan pencarian jika kolom pencarian tidak kosong
+  // Hitung rasio dinamis untuk Grafik Progres Penetapan Batas (Doughnut Chart)
+  const progressRatio = useMemo(
+    () => calculateBoundaryProgressRatio(wilayahList),
+    [wilayahList]
+  );
+
+  // Hitung Top 7 Kecamatan dengan persentase penyelesaian Perbup tertinggi (Horizontal Bar Chart)
+  const topKecamatanProgress = useMemo(
+    () => calculateTopKecamatanProgress(wilayahList, 7),
+    [wilayahList]
+  );
+
+  // Sampel Wilayah Definitif (6 wilayah berstatus 'Final (Sah / Selesai)') untuk State Awal (Kosong)
+  const featuredFinalWilayah = useMemo(
+    () => getFeaturedFinalWilayah(wilayahList, 6),
+    [wilayahList]
+  );
+
+  // Live filtering: Saring wilayahDataKonawe saat pengguna mengetik minimal 1 karakter
   const searchResults = useMemo(() => {
     if (!isSearching) return [];
     return filterWilayahKonawe(wilayahList, {
@@ -51,41 +81,169 @@ export const HomeView: React.FC<HomeViewProps> = ({
     });
   }, [wilayahList, trimmedQuery, isSearching]);
 
-  return (
-    <div className="space-y-10">
-      {/* HERO SECTION (2-Column Split on Desktop with items-stretch) */}
-      <section className="bg-emerald-950 text-white rounded-2xl border border-emerald-900 overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
-          <div className="lg:col-span-7 p-7 sm:p-10 lg:p-12 flex flex-col justify-between">
-            <div>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-amber-400 font-medium tracking-wide mb-4">
-                <span>Pemerintah Kabupaten Konawe</span>
-                <span aria-hidden="true">·</span>
-                <span>Bagian Tata Pemerintahan Setda</span>
-                <span aria-hidden="true">·</span>
-                <span>Provinsi Sulawesi Tenggara</span>
+  const renderWilayahCard = (item: WilayahKonawe, testId: string) => {
+    const ketBatas = item.keterangan_batas.trim();
+    const ketPerda = item.keterangan_pembentukan.trim();
+    const hasLinkBatas = item.link_batas.trim().length > 0;
+    const hasLinkPerda =
+      Array.isArray(item.link_pembentukan) && item.link_pembentukan.length > 0;
+    const isDraft =
+      ketBatas.toLowerCase().includes('draf') ||
+      ketBatas.toLowerCase().includes('tahap penyusunan');
+
+    return (
+      <article
+        key={item.kode}
+        data-testid={testId}
+        className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg rounded-xl bg-white shadow-md border border-gray-100 p-5 flex flex-col justify-between"
+      >
+        <div>
+          <div className="flex items-center justify-between gap-2 text-xs text-slate-500 mb-2">
+            <span className="font-medium text-slate-700">
+              Kecamatan {formatNamaKecamatan(item.kecamatan)}
+            </span>
+            <span className="font-mono tabular-nums text-slate-700 font-semibold">
+              {item.kode}
+            </span>
+          </div>
+
+          {/* Nama Lengkap Wilayah */}
+          <h3 className="text-base font-bold text-slate-900">
+            {item.status} {item.nama_wilayah}
+          </h3>
+
+          {/* Status Dokumen Perbup */}
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            {ketBatas ? (
+              <div>
+                <div
+                  className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
+                    isDraft ? 'text-amber-800' : 'text-emerald-800'
+                  }`}
+                >
+                  {isDraft ? (
+                    <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  ) : (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                  )}
+                  <span>
+                    {isDraft
+                      ? 'Status Perbup: Draf (On-Going)'
+                      : 'Status Perbup: Final (Sah / Selesai)'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-700 mt-1 leading-relaxed">
+                  {ketBatas}
+                </p>
               </div>
+            ) : (
+              <div>
+                <p className="text-xs font-semibold text-slate-500">
+                  Status Perbup: Belum Perbup
+                </p>
+                {ketPerda && (
+                  <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                    Dasar Pembentukan: {ketPerda}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
-                SI-BATAS KONAWE
-              </h1>
+        {/* Tombol Unduh & Rincian */}
+        <div className="mt-5 pt-3.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => onSelectWilayah(item)}
+            className="px-3 py-2 text-xs font-medium text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+          >
+            Rincian Wilayah
+          </button>
 
-              <p className="mt-4 text-base sm:text-lg text-emerald-100/90 leading-relaxed max-w-2xl">
-                Sistem Informasi Tapal Batas Wilayah Berbasis Cloud - Bagian Tata Pemerintahan Sekretariat Daerah Kabupaten Konawe.
-              </p>
+          <div className="flex flex-wrap items-center gap-2">
+            {hasLinkPerda &&
+              item.link_pembentukan.map((url, idx) => (
+                <a
+                  key={`${item.kode}-beranda-perda-${idx}`}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-2 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  <span>
+                    UU/Perda{item.link_pembentukan.length > 1 ? ` #${idx + 1}` : ''}
+                  </span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              ))}
 
-              <p className="mt-3 text-sm text-emerald-200/75 leading-relaxed max-w-2xl">
-                Portal pangkalan data terpadu yang memuat <strong className="text-white font-semibold">{stats.totalDesaKelurahan} wilayah definitif ({stats.totalDesa} Desa &amp; {stats.totalKelurahan} Kelurahan)</strong> pada <strong className="text-white font-semibold">{stats.totalKecamatan} Kecamatan</strong> di Kabupaten Konawe beserta dokumen Undang-Undang/Perda pembentukan, Peraturan Bupati batas wilayah, Berita Acara, dan peta spasial WebGIS.
-              </p>
+            {hasLinkBatas ? (
+              <a
+                href={item.link_batas}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-2 text-xs font-semibold text-white bg-emerald-900 hover:bg-emerald-800 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <span>Unduh Dokumen</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="px-3.5 py-2 text-xs font-semibold text-slate-500 bg-stone-200 border border-stone-300 rounded-lg cursor-not-allowed whitespace-nowrap"
+              >
+                Belum Tersedia
+              </button>
+            )}
+          </div>
+        </div>
+      </article>
+    );
+  };
+
+  return (
+    <div className="space-y-10 pb-6">
+      {/* 1. HERO SECTION (HIJAU TUA KHAS PEMERINTAHAN, 2 KOLOM PADA DESKTOP, PADDING BAWAH UNTUK OVERLAP) */}
+      <section
+        aria-labelledby="hero-title"
+        data-testid="beranda-hero-section"
+        className="bg-emerald-950 text-white rounded-2xl border border-emerald-900 overflow-hidden pt-8 sm:pt-12 pb-20 sm:pb-24 px-6 sm:px-10 lg:px-12 relative"
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12 items-center gap-8 lg:gap-10">
+          {/* Kolom Kiri: Judul Besar, Subjudul Pemerintah Kabupaten Konawe, Paragraf Pengantar & Aksi */}
+          <div className="lg:col-span-7 space-y-5">
+            <div className="inline-flex flex-wrap items-center gap-2 text-xs sm:text-sm font-semibold text-amber-400 tracking-wide">
+              <span>Pemerintah Kabupaten Konawe</span>
+              <span aria-hidden="true">·</span>
+              <span className="text-emerald-200 font-medium">
+                Bagian Tata Pemerintahan Sekretariat Daerah
+              </span>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-emerald-800/70 flex flex-wrap items-center gap-3">
+            <h1
+              id="hero-title"
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight"
+            >
+              SI-BATAS KONAWE
+            </h1>
+
+            <p className="text-base sm:text-lg text-emerald-100/95 leading-relaxed max-w-2xl">
+              Sistem Informasi Tapal Batas Wilayah Berbasis Cloud yang menyajikan pangkalan data terpadu produk hukum batas desa/kelurahan, arsip Berita Acara kesepakatan pelacakan lapangan, serta pemetaan spasial interaktif (WebGIS) di seluruh wilayah administrasi Kabupaten Konawe.
+            </p>
+
+            <p className="text-xs sm:text-sm text-emerald-200/80 leading-relaxed max-w-2xl">
+              Mengelola secara terpusat <strong className="text-white font-semibold">{stats.totalDesaKelurahan} wilayah definitif ({stats.totalDesa} Desa &amp; {stats.totalKelurahan} Kelurahan)</strong> pada <strong className="text-white font-semibold">{stats.totalKecamatan} Kecamatan</strong> sesuai standar penyelenggaraan penegasan batas daerah.
+            </p>
+
+            <div className="pt-3 flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={() => onNavigate('produk-hukum')}
                 className="px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-semibold text-sm rounded-lg transition-colors inline-flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
               >
-                <span>Telusuri Pangkalan Data Wilayah</span>
+                <span>Direktori Produk Hukum</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
@@ -95,63 +253,172 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 className="px-5 py-2.5 bg-emerald-900/90 hover:bg-emerald-800 text-white font-medium text-sm rounded-lg border border-emerald-700 transition-colors inline-flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
               >
                 <Map className="w-4 h-4 text-amber-400" />
-                <span>Peta Interaktif WebGIS</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={onOpenVercelCode}
-                className="px-4 py-2.5 bg-transparent hover:bg-emerald-900/60 text-emerald-200 hover:text-white font-medium text-xs rounded-lg border border-emerald-800 transition-colors inline-flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
-              >
-                <Code2 className="w-4 h-4 text-amber-400" />
-                <span>Kode Siap Vercel (data.js &amp; index.html)</span>
+                <span>Buka Peta Interaktif WebGIS</span>
               </button>
             </div>
           </div>
 
-          <div className="lg:col-span-5 relative min-h-[260px] lg:min-h-full bg-emerald-900">
-            <img
-              src="/src/assets/images/konawe_aerial_topography_1793753978110.jpg"
-              alt="Bentang alam lembah sungai dan hamparan wilayah administrasi Kabupaten Konawe"
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/90 via-emerald-950/35 to-transparent flex flex-col justify-end p-6">
-              <p className="text-xs font-mono text-amber-300 tabular-nums">
-                KODE KEMENDAGRI KAB. KONAWE: 74.02 · {stats.totalKecamatan} KECAMATAN · {stats.totalDesaKelurahan} DESA/KELURAHAN
-              </p>
-              <p className="text-sm font-medium text-white mt-1">
-                Koridor Lembah Sungai Konaweha &amp; Kawasan Perkotaan Unaaha
-              </p>
+          {/* Kolom Kanan: Ilustrasi Vektor Ikonografi Spasial (Peta / GIS) Minimalis Modern */}
+          <div className="lg:col-span-5">
+            <div
+              data-testid="hero-gis-illustration"
+              className="bg-emerald-900/60 border border-emerald-800/90 rounded-2xl p-5 sm:p-6 relative overflow-hidden"
+            >
+              <div className="flex items-center justify-between text-xs font-mono text-emerald-200/90 mb-3">
+                <span className="inline-flex items-center gap-1.5 font-semibold text-amber-300">
+                  <Compass className="w-4 h-4" />
+                  <span>SPASIAL GIS · KODE 74.02</span>
+                </span>
+                <span className="tabular-nums">WGS-84 / UTM 51S</span>
+              </div>
+
+              {/* Vektor Ikonografi Peta Poligon & Jaringan Kartometrik */}
+              <svg
+                viewBox="0 0 420 230"
+                className="w-full h-auto rounded-xl bg-emerald-950/80 border border-emerald-800/70"
+                role="img"
+                aria-label="Ilustrasi vektor ikonografi spasial peta poligon batas wilayah Kabupaten Konawe"
+              >
+                <defs>
+                  <pattern
+                    id="gis-grid"
+                    width="28"
+                    height="28"
+                    patternUnits="userSpaceOnUse"
+                  >
+                    <path
+                      d="M 28 0 L 0 0 0 28"
+                      fill="none"
+                      stroke="rgba(16, 185, 129, 0.14)"
+                      strokeWidth="1"
+                    />
+                  </pattern>
+                </defs>
+
+                {/* Grid Geodetik */}
+                <rect width="420" height="230" fill="url(#gis-grid)" />
+
+                {/* Garis Kontur Topografi Minimalis */}
+                <path
+                  d="M -10 185 Q 95 140 210 175 T 430 145"
+                  fill="none"
+                  stroke="rgba(52, 211, 153, 0.18)"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 4"
+                />
+                <path
+                  d="M -10 70 Q 130 25 255 65 T 430 40"
+                  fill="none"
+                  stroke="rgba(52, 211, 153, 0.16)"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 4"
+                />
+
+                {/* Poligon Spasial Wilayah Administrasi */}
+                <polygon
+                  points="65,62 158,34 242,56 268,118 205,178 102,168 54,118"
+                  fill="rgba(16, 185, 129, 0.18)"
+                  stroke="#34d399"
+                  strokeWidth="2"
+                />
+                <polygon
+                  points="242,56 346,44 378,108 332,182 205,178 268,118"
+                  fill="rgba(245, 158, 11, 0.14)"
+                  stroke="#fbbf24"
+                  strokeWidth="2"
+                  strokeDasharray="5 3"
+                />
+
+                {/* Segmen Garis Batas Internal Desa/Kecamatan */}
+                <polyline
+                  points="158,34 176,106 102,168"
+                  fill="none"
+                  stroke="rgba(167, 243, 208, 0.65)"
+                  strokeWidth="1.5"
+                />
+                <polyline
+                  points="176,106 268,118 346,44"
+                  fill="none"
+                  stroke="rgba(167, 243, 208, 0.55)"
+                  strokeWidth="1.5"
+                />
+
+                {/* Titik Pilar Batas Utama (PBU / TK) */}
+                <g>
+                  <circle cx="158" cy="34" r="4.5" fill="#fbbf24" />
+                  <circle cx="242" cy="56" r="5" fill="#fbbf24" />
+                  <circle cx="268" cy="118" r="5.5" fill="#10b981" stroke="#ffffff" strokeWidth="1.5" />
+                  <circle cx="176" cy="106" r="4.5" fill="#34d399" />
+                  <circle cx="205" cy="178" r="4.5" fill="#fbbf24" />
+                  <circle cx="346" cy="44" r="4" fill="#fbbf24" />
+                  <circle cx="332" cy="182" r="4" fill="#34d399" />
+                </g>
+
+                {/* Label Koordinat Spasial */}
+                <rect
+                  x="16"
+                  y="194"
+                  width="192"
+                  height="24"
+                  rx="6"
+                  fill="rgba(6, 78, 59, 0.85)"
+                  stroke="rgba(52, 211, 153, 0.35)"
+                />
+                <text
+                  x="26"
+                  y="210"
+                  fill="#d1fae5"
+                  fontSize="10"
+                  fontFamily="JetBrains Mono, monospace"
+                >
+                  03°51&apos;24&quot;LS · 122°03&apos;18&quot;BT
+                </text>
+
+                <rect
+                  x="284"
+                  y="14"
+                  width="120"
+                  height="22"
+                  rx="6"
+                  fill="rgba(6, 78, 59, 0.85)"
+                  stroke="rgba(251, 191, 36, 0.4)"
+                />
+                <text
+                  x="294"
+                  y="28"
+                  fill="#fde68a"
+                  fontSize="10"
+                  fontFamily="JetBrains Mono, monospace"
+                >
+                  {stats.totalDesaKelurahan} POLIGON DESA
+                </text>
+              </svg>
+
+              <div className="mt-3 flex items-center justify-between text-xs text-emerald-100/80">
+                <span className="inline-flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Topologi Batas Kecamatan &amp; Desa</span>
+                </span>
+                <span className="font-mono tabular-nums text-amber-300">
+                  {stats.totalKecamatan} Koridor Kecamatan
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* DASBOR RINGKASAN STATISTIK (COUNTER CARDS — DIHITUNG DINAMIS DARI WILAYAHDATAKONAWE) */}
-      <section aria-labelledby="heading-statistik">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-4">
-          <div>
-            <h2 id="heading-statistik" className="text-xl font-bold text-slate-900">
-              Dasbor Ringkasan Statistik Wilayah &amp; Tapal Batas
-            </h2>
-            <p className="text-sm text-slate-600">
-              Rekapitulasi dinamis real-time dari pangkalan data <code className="font-mono text-xs bg-stone-200/70 px-1.5 py-0.5 rounded">wilayahDataKonawe</code> ({stats.totalDesaKelurahan} entitas wilayah definitif).
-            </p>
-          </div>
-          <span className="text-xs text-slate-500 font-mono tabular-nums">
-            Sinkronisasi Data Resmi · Bagian Tapem Setda Kab. Konawe
-          </span>
-        </div>
-
+      {/* 2. DASBOR RINGKASAN STATISTIK DENGAN EFEK OVERLAP (-mt-14 sm:-mt-16) */}
+      <section
+        aria-label="Dasbor Ringkasan Statistik"
+        data-testid="beranda-statistik-section"
+        className="-mt-14 sm:-mt-16 relative z-10 px-3 sm:px-6"
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {/* Card 1: Total Kecamatan Terdata */}
-          <div className="bg-white rounded-xl p-6 border border-stone-200 flex flex-col justify-between">
+          <div className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg rounded-xl bg-white shadow-md border border-gray-100 p-6 flex flex-col justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500">Total Kecamatan Terdata</p>
+              <p className="text-xs font-semibold text-slate-500">Total Kecamatan Terdata</p>
               <p
                 data-testid="counter-kecamatan"
                 className="text-3xl sm:text-4xl font-bold text-slate-900 font-mono tabular-nums mt-2"
@@ -159,15 +426,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 {stats.totalKecamatan}
               </p>
             </div>
-            <p className="text-xs text-slate-500 mt-4 pt-3 border-t border-stone-100">
-              Kecamatan definitif se-Kabupaten Konawe (Kode 74.02)
+            <p className="text-xs text-slate-500 mt-4 pt-3 border-t border-gray-100">
+              Kecamatan definitif Kabupaten Konawe (Kode 74.02)
             </p>
           </div>
 
           {/* Card 2: Total Desa / Kelurahan */}
-          <div className="bg-white rounded-xl p-6 border border-stone-200 flex flex-col justify-between">
+          <div className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg rounded-xl bg-white shadow-md border border-gray-100 p-6 flex flex-col justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500">Total Desa / Kelurahan</p>
+              <p className="text-xs font-semibold text-slate-500">Total Desa / Kelurahan</p>
               <div className="flex items-baseline gap-2.5 mt-2">
                 <p
                   data-testid="counter-desa"
@@ -180,15 +447,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 </span>
               </div>
             </div>
-            <p className="text-xs text-slate-500 mt-4 pt-3 border-t border-stone-100">
+            <p className="text-xs text-slate-500 mt-4 pt-3 border-t border-gray-100">
               {stats.totalPerdaPembentukan} wilayah terdata dasar UU/PP/Perda Pembentukan
             </p>
           </div>
 
           {/* Card 3: Jumlah Perbup Final */}
-          <div className="bg-white rounded-xl p-6 border border-stone-200 flex flex-col justify-between">
+          <div className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg rounded-xl bg-white shadow-md border border-gray-100 p-6 flex flex-col justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500">Jumlah Perbup Final</p>
+              <p className="text-xs font-semibold text-slate-500">Jumlah Perbup Final</p>
               <div className="flex items-baseline gap-2.5 mt-2">
                 <p
                   data-testid="counter-perbup-final"
@@ -201,15 +468,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 </span>
               </div>
             </div>
-            <p className="text-xs text-emerald-800 font-medium mt-4 pt-3 border-t border-stone-100">
+            <p className="text-xs text-emerald-800 font-medium mt-4 pt-3 border-t border-gray-100">
               {stats.totalLinkBatas} Tautan Dokumen Perbup Tersedia di Cloud
             </p>
           </div>
 
-          {/* Card 4: Berita Acara & Regulasi */}
-          <div className="bg-white rounded-xl p-6 border border-stone-200 flex flex-col justify-between">
+          {/* Card 4: Berita Acara Selesai */}
+          <div className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg rounded-xl bg-white shadow-md border border-gray-100 p-6 flex flex-col justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500">Berita Acara Selesai</p>
+              <p className="text-xs font-semibold text-slate-500">Berita Acara Selesai</p>
               <div className="flex items-baseline gap-2.5 mt-2">
                 <p
                   data-testid="counter-ba-final"
@@ -222,24 +489,279 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 </span>
               </div>
             </div>
-            <p className="text-xs text-amber-800 font-medium mt-4 pt-3 border-t border-stone-100">
+            <p className="text-xs text-amber-800 font-medium mt-4 pt-3 border-t border-gray-100">
               Arsip Kesepakatan Batas &amp; Regulasi Desa/Kelurahan
             </p>
           </div>
         </div>
       </section>
 
-      {/* KOLOM PENCARIAN WILAYAH CEPAT & ELEGAN (LIVE FILTERING TEPAT DI BAWAH DASBOR STATISTIK) */}
-      <section aria-labelledby="heading-pencarian-beranda" className="bg-white rounded-2xl border border-stone-200 p-6 sm:p-8 shadow-xs">
+      {/* 3. VISUALISASI DATA KOMPARATIF (2 KOLOM BERDAMPINGAN DI DESKTOP: DOUGHNUT GLOBAL & HORIZONTAL BAR CHART KECAMATAN) */}
+      <section
+        aria-labelledby="heading-grafik-progres"
+        data-testid="beranda-chart-section"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch"
+      >
+        {/* KOLOM KIRI (TETAP): GRAFIK DONAT PROGRES GLOBAL KABUPATEN BESERTA KARTU LEGENDANYA */}
+        <div
+          data-testid="beranda-doughnut-panel"
+          className="lg:col-span-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg rounded-xl bg-white shadow-md border border-gray-100 p-6 sm:p-7 flex flex-col justify-between"
+        >
+          <div>
+            <p className="text-xs font-mono font-semibold text-emerald-800 tracking-wider uppercase">
+              CAKUPAN GLOBAL KABUPATEN KONAWE
+            </p>
+            <h2
+              id="heading-grafik-progres"
+              className="text-xl sm:text-2xl font-bold text-slate-900 mt-1"
+            >
+              Grafik Progres Penetapan Batas
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">
+              Proporsi desa/kelurahan berstatus <strong className="text-slate-900">Final (Sah / Selesai)</strong> berbanding <strong className="text-slate-900">Belum Perbup</strong> dari seluruh {progressRatio.totalWilayah} wilayah definitif.
+            </p>
+          </div>
+
+          {/* Grafik Donat Responsif (Recharts) */}
+          <div className="my-4 flex flex-col items-center justify-center">
+            <div
+              className="w-full h-56 max-w-xs mx-auto relative"
+              data-testid="doughnut-chart-container"
+            >
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                <PieChart>
+                  <Pie
+                    data={progressRatio.slices}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={62}
+                    outerRadius={88}
+                    paddingAngle={3}
+                    strokeWidth={0}
+                    isAnimationActive={false}
+                  >
+                    {progressRatio.slices.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value, name) => {
+                      const numVal = Number(value ?? 0);
+                      return [
+                        `${numVal} Wilayah (${((numVal / progressRatio.totalWilayah) * 100).toFixed(1)}%)`,
+                        String(name ?? '')
+                      ];
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+
+              {/* Label Tengah Grafik Donat */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+                <span className="text-2xl font-bold font-mono tabular-nums text-emerald-900">
+                  {progressRatio.finalPercentage}%
+                </span>
+                <span className="text-xs font-medium text-slate-500">
+                  Perbup Final
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Kartu Legenda (Final vs Belum Perbup) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+            <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-emerald-950">
+                  Final (Sah / Selesai)
+                </span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-800 shrink-0" aria-hidden="true" />
+              </div>
+              <div className="mt-1.5 flex items-baseline gap-1.5">
+                <span
+                  data-testid="chart-final-count"
+                  className="text-2xl font-bold font-mono tabular-nums text-emerald-900"
+                >
+                  {progressRatio.finalCount}
+                </span>
+                <span className="text-xs font-mono tabular-nums text-emerald-800 font-semibold">
+                  ({progressRatio.finalPercentage}%)
+                </span>
+              </div>
+              <p className="text-xs text-emerald-900/80 mt-0.5">
+                Perbup Konawe Definitif
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-700">
+                  Belum Perbup
+                </span>
+                <span className="w-2.5 h-2.5 rounded-full bg-stone-300 shrink-0" aria-hidden="true" />
+              </div>
+              <div className="mt-1.5 flex items-baseline gap-1.5">
+                <span
+                  data-testid="chart-belum-count"
+                  className="text-2xl font-bold font-mono tabular-nums text-slate-800"
+                >
+                  {progressRatio.belumPerbupCount}
+                </span>
+                <span className="text-xs font-mono tabular-nums text-slate-600 font-semibold">
+                  ({progressRatio.belumPerbupPercentage}%)
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Tahap Draf / Pelacakan
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* KOLOM KANAN (BARU - ANALITIK KECAMATAN): GRAFIK BATANG HORIZONTAL TOP PROGRES KINERJA KECAMATAN */}
+        <div
+          data-testid="beranda-barchart-panel"
+          className="lg:col-span-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg rounded-xl bg-white shadow-md border border-gray-100 p-6 sm:p-7 flex flex-col justify-between"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+            <div>
+              <p className="text-xs font-mono font-semibold text-emerald-800 tracking-wider uppercase">
+                PERINGKAT KOMPARATIF KECAMATAN (TOP {topKecamatanProgress.length} PERFORMERS)
+              </p>
+              <h2
+                id="heading-top-kecamatan"
+                className="text-xl sm:text-2xl font-bold text-slate-900 mt-1"
+              >
+                Top Progres Kinerja Kecamatan
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">
+                Persentase penyelesaian Peraturan Bupati (Perbup) batas desa/kelurahan tertinggi per kecamatan (diurutkan dari capaian tertinggi ke terendah).
+              </p>
+            </div>
+
+            <span className="px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-xs font-mono font-semibold text-emerald-900 whitespace-nowrap self-start">
+              Urutan Descending
+            </span>
+          </div>
+
+          {/* Horizontal Bar Chart (Recharts) dengan Skema Gradasi Hijau */}
+          <div
+            className="w-full h-72 sm:h-80 mt-4"
+            data-testid="horizontal-barchart-container"
+          >
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <BarChart
+                data={topKecamatanProgress}
+                layout="vertical"
+                margin={{ top: 6, right: 56, left: 12, bottom: 6 }}
+              >
+                <defs>
+                  <linearGradient id="emeraldGradHigh" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#064e3b" />
+                    <stop offset="100%" stopColor="#059669" />
+                  </linearGradient>
+                  <linearGradient id="emeraldGradMid" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#065f46" />
+                    <stop offset="100%" stopColor="#10b981" />
+                  </linearGradient>
+                  <linearGradient id="emeraldGradSoft" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#047857" />
+                    <stop offset="100%" stopColor="#34d399" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  horizontal={true}
+                  vertical={true}
+                  stroke="#e7e5e4"
+                />
+                <XAxis
+                  type="number"
+                  domain={[0, 100]}
+                  tickFormatter={(v) => `${v}%`}
+                  tick={{ fontSize: 11, fill: '#64748b', fontFamily: 'JetBrains Mono, monospace' }}
+                  axisLine={{ stroke: '#d6d3d1' }}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="kecamatan"
+                  width={132}
+                  tick={{ fontSize: 12, fill: '#0f172a', fontWeight: 600 }}
+                  axisLine={{ stroke: '#d6d3d1' }}
+                />
+                <Tooltip
+                  formatter={(value, _name, item) => {
+                    const numVal = Number(value ?? 0);
+                    const payload = item?.payload as
+                      | { finalCount?: number; totalWilayah?: number }
+                      | undefined;
+                    const ratioText =
+                      payload?.finalCount !== undefined && payload?.totalWilayah !== undefined
+                        ? ` (${payload.finalCount} dari ${payload.totalWilayah} Desa/Kelurahan)`
+                        : '';
+                    return [`${numVal}% Selesai${ratioText}`, 'Capaian Perbup Final'];
+                  }}
+                  labelFormatter={(label) => `Kecamatan ${String(label ?? '')}`}
+                />
+                <Bar
+                  dataKey="percentage"
+                  radius={[0, 6, 6, 0]}
+                  barSize={24}
+                  isAnimationActive={false}
+                >
+                  {topKecamatanProgress.map((entry, idx) => (
+                    <Cell
+                      key={entry.kecamatan}
+                      fill={
+                        idx < 2
+                          ? 'url(#emeraldGradHigh)'
+                          : idx < 5
+                          ? 'url(#emeraldGradMid)'
+                          : 'url(#emeraldGradSoft)'
+                      }
+                    />
+                  ))}
+                  <LabelList
+                    dataKey="percentage"
+                    position="right"
+                    formatter={(val: unknown) => `${Number(val ?? 0)}%`}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      fill: '#065f46',
+                      fontFamily: 'JetBrains Mono, monospace'
+                    }}
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+            <span>
+              Rumus Analitik: <strong className="text-slate-700">(Desa Berstatus Final ÷ Total Desa Kecamatan) × 100%</strong>
+            </span>
+            <span className="font-mono tabular-nums text-emerald-800 font-semibold">
+              Tertinggi: Kec. {topKecamatanProgress[0]?.kecamatan} ({topKecamatanProgress[0]?.percentage}% · {topKecamatanProgress[0]?.finalCount}/{topKecamatanProgress[0]?.totalWilayah} Desa)
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. KOLOM PENCARIAN WILAYAH DINAMIS (DI BAWAH KOMPONEN GRAFIK) */}
+      <section
+        aria-labelledby="heading-pencarian-beranda"
+        data-testid="beranda-search-section"
+        className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg rounded-xl bg-white shadow-md border border-gray-100 p-6 sm:p-10"
+      >
         <div className="max-w-3xl mx-auto text-center">
-          <p className="text-xs font-mono uppercase tracking-widest text-emerald-800 font-semibold">
-            PENCARIAN CEPAT PANGKALAN DATA WILAYAH
-          </p>
-          <h2 id="heading-pencarian-beranda" className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">
-            Cari Desa, Kelurahan, atau Kecamatan
+          <h2 id="heading-pencarian-beranda" className="text-xl sm:text-2xl font-bold text-slate-900">
+            Kolom Pencarian Wilayah
           </h2>
-          <p className="text-sm text-slate-600 mt-2">
-            Ketik nama Desa/Kelurahan, nama Kecamatan, atau kode wilayah untuk menampilkan kartu informasi batas wilayah dan tautan unduh dokumennya secara instan.
+          <p className="text-sm text-slate-600 mt-1.5">
+            Ketik nama Desa, Kelurahan, atau Kecamatan untuk mencari status dokumen Peraturan Bupati (Perbup) dan mengunduh berkasnya secara langsung.
           </p>
 
           <div className="mt-6 relative">
@@ -247,12 +769,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <input
               id="beranda-search-input"
               data-testid="beranda-search-input"
-              type="search"
+              type="text"
+              role="searchbox"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Ketik nama Desa / Kelurahan atau Kecamatan (contoh: Unaaha, Kasumewuho, Lambuya, Routa)..."
-              aria-label="Cari nama Desa, Kelurahan, atau Kecamatan di Kabupaten Konawe"
-              className="w-full pl-12 pr-12 py-4 bg-stone-50 focus:bg-white rounded-xl border-2 border-stone-200 focus:border-emerald-800 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none transition-colors shadow-2xs"
+              placeholder="Ketik nama Desa, Kelurahan, atau Kecamatan (contoh: Kasumewuho, Unaaha)..."
+              aria-label="Kolom Pencarian Wilayah Desa, Kelurahan, atau Kecamatan"
+              className="w-full pl-12 pr-12 py-4 bg-stone-50 focus:bg-white rounded-xl border border-stone-300 focus:border-emerald-800 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none transition-colors"
             />
             {isSearching && (
               <button
@@ -266,260 +789,91 @@ export const HomeView: React.FC<HomeViewProps> = ({
             )}
           </div>
         </div>
+      </section>
 
-        {/* HASIL PENCARIAN DINAMIS (HANYA MUNCUL JIKA KOLOM PENCARIAN TIDAK KOSONG) */}
-        {isSearching && (
-          <div data-testid="beranda-search-results" className="mt-8 pt-6 border-t border-stone-200">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
-              <p className="text-sm text-slate-700">
-                Menampilkan{' '}
-                <strong className="font-mono font-bold text-slate-900 tabular-nums">
-                  {searchResults.length}
-                </strong>{' '}
-                hasil pencarian untuk kata kunci{' '}
-                <span className="font-semibold text-emerald-900">&ldquo;{trimmedQuery}&rdquo;</span>
+      {/* 5. PENEMUAN BERTAHAP (PROGRESSIVE DISCLOSURE):
+          - STATE AWAL (KOSONG): Tampilkan 'Arsip Batas Definitif Terbaru' (6 wilayah berstatus 'Final (Sah / Selesai)')
+          - STATE PENCARIAN (AKTIF >= 1 KARAKTER): Sembunyikan bagian Arsip Batas Definitif Terbaru dan render Hasil Pencarian */}
+      {!isSearching ? (
+        <section
+          aria-labelledby="heading-arsip-definitif"
+          data-testid="beranda-featured-section"
+          className="space-y-5"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 px-1">
+            <div>
+              <p className="text-xs font-mono uppercase tracking-wider text-emerald-800 font-semibold">
+                SAMPEL WILAYAH DEFINITIF · STATUS FINAL (SAH / SELESAI)
               </p>
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer self-start sm:self-auto"
+              <h2
+                id="heading-arsip-definitif"
+                className="text-xl sm:text-2xl font-bold text-slate-900 mt-1"
               >
-                Tutup Hasil Pencarian
-              </button>
+                Arsip Batas Definitif Terbaru
+              </h2>
+              <p className="text-sm text-slate-600 mt-0.5">
+                Menampilkan {featuredFinalWilayah.length} sampel wilayah yang telah memiliki Peraturan Bupati (Perbup) batas wilayah definitif. Gunakan kolom pencarian di atas untuk mencari desa/kelurahan lainnya.
+              </p>
             </div>
 
-            {searchResults.length === 0 ? (
-              <div className="bg-stone-50 rounded-xl border border-stone-200 p-8 text-center">
-                <p className="text-sm font-bold text-slate-900">
-                  Wilayah tidak ditemukan untuk kata kunci &ldquo;{trimmedQuery}&rdquo;
-                </p>
-                <p className="text-xs text-slate-600 mt-1">
-                  Periksa kembali ejaan nama Desa/Kelurahan atau Kecamatan yang Anda cari.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {searchResults.map((item) => {
-                  const ketBatas = item.keterangan_batas.trim();
-                  const ketPerda = item.keterangan_pembentukan.trim();
-                  const hasLinkBatas = item.link_batas.trim().length > 0;
-                  const hasLinkPerda =
-                    Array.isArray(item.link_pembentukan) && item.link_pembentukan.length > 0;
-                  const isDraft =
-                    ketBatas.toLowerCase().includes('draf') ||
-                    ketBatas.toLowerCase().includes('tahap penyusunan');
+            <button
+              type="button"
+              onClick={() => onNavigate('produk-hukum')}
+              className="px-4 py-2 text-xs font-semibold text-emerald-900 bg-white hover:bg-emerald-50 border border-stone-200 rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto whitespace-nowrap shrink-0"
+            >
+              <span>Lihat Seluruh {stats.totalDesaKelurahan} Wilayah</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
-                  return (
-                    <div
-                      key={item.kode}
-                      data-testid="beranda-wilayah-card"
-                      className="bg-stone-50/70 hover:bg-white rounded-xl p-5 border border-stone-200 transition-colors flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between gap-2 text-xs text-slate-500 mb-2">
-                          <span className="font-medium text-slate-700">
-                            Kecamatan {formatNamaKecamatan(item.kecamatan)}
-                          </span>
-                          <span className="font-mono tabular-nums text-slate-800 font-semibold">
-                            {item.kode}
-                          </span>
-                        </div>
-
-                        <h3 className="text-base font-bold text-slate-900">
-                          {item.status} {item.nama_wilayah}
-                        </h3>
-
-                        {ketBatas ? (
-                          <div className="mt-3">
-                            <div
-                              className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
-                                isDraft ? 'text-amber-800' : 'text-emerald-800'
-                              }`}
-                            >
-                              {isDraft ? (
-                                <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                              ) : (
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                              )}
-                              <span>
-                                {isDraft ? 'Draf Perbup (On-Going)' : 'Perbup / BA Batas (Final)'}
-                              </span>
-                            </div>
-                            <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-                              {ketBatas}
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-slate-400 font-mono mt-3">
-                            Belum Terbit Perbup Batas Wilayah
-                          </p>
-                        )}
-
-                        {ketPerda && (
-                          <p className="text-xs text-slate-500 mt-2.5 leading-relaxed line-clamp-2">
-                            <strong className="text-slate-700">Dasar Pembentukan:</strong>{' '}
-                            {ketPerda}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="mt-5 pt-3.5 border-t border-stone-200/80 flex flex-wrap items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={() => onSelectWilayah(item)}
-                          className="px-3 py-2 text-xs font-medium text-slate-700 bg-white hover:bg-stone-100 border border-stone-200 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
-                        >
-                          Rincian Wilayah
-                        </button>
-
-                        <div className="flex flex-wrap items-center gap-2">
-                          {hasLinkPerda &&
-                            item.link_pembentukan.map((url, idx) => (
-                              <a
-                                key={`${item.kode}-beranda-perda-${idx}`}
-                                href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-3 py-2 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
-                              >
-                                <span>
-                                  UU/Perda{item.link_pembentukan.length > 1 ? ` #${idx + 1}` : ''}
-                                </span>
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
-                            ))}
-
-                          {hasLinkBatas ? (
-                            <a
-                              href={item.link_batas}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-3.5 py-2 text-xs font-semibold text-white bg-emerald-900 hover:bg-emerald-800 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
-                            >
-                              <span>Unduh / Buka Dokumen</span>
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled
-                              className="px-3.5 py-2 text-xs font-semibold text-slate-500 bg-stone-200 border border-stone-300 rounded-lg cursor-not-allowed whitespace-nowrap"
-                            >
-                              Dokumen Belum Tersedia
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {featuredFinalWilayah.map((item) =>
+              renderWilayahCard(item, 'beranda-featured-card')
             )}
           </div>
-        )}
-      </section>
+        </section>
+      ) : (
+        <section
+          aria-label="Hasil Pencarian Wilayah"
+          data-testid="beranda-search-results"
+          className="space-y-4"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+            <p className="text-sm text-slate-700">
+              Ditemukan{' '}
+              <strong className="font-mono font-bold text-slate-900 tabular-nums">
+                {searchResults.length}
+              </strong>{' '}
+              wilayah untuk kata kunci{' '}
+              <span className="font-semibold text-emerald-900">&ldquo;{trimmedQuery}&rdquo;</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors cursor-pointer self-start sm:self-auto"
+            >
+              Bersihkan Pencarian
+            </button>
+          </div>
 
-      {/* KARTU AKSES CEPAT (QUICK ACCESS CARDS) */}
-      <section aria-labelledby="heading-akses-cepat">
-        <div className="mb-4">
-          <h2 id="heading-akses-cepat" className="text-xl font-bold text-slate-900">
-            Akses Cepat Layanan Portal SI-BATAS
-          </h2>
-          <p className="text-sm text-slate-600">
-            Pilih modul layanan untuk mengakses direktori lengkap {stats.totalDesaKelurahan} desa/kelurahan pada halaman Produk Hukum &amp; Berita Acara, progres kegiatan, atau peta interaktif.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <button
-            type="button"
-            onClick={() => onNavigate('produk-hukum')}
-            className="group text-left bg-white hover:bg-emerald-950 hover:text-white rounded-xl p-6 border border-stone-200 hover:border-emerald-900 transition-all duration-150 flex flex-col justify-between cursor-pointer"
-          >
-            <div>
-              <div className="w-10 h-10 rounded-lg bg-emerald-100 group-hover:bg-emerald-900 text-emerald-900 group-hover:text-amber-400 flex items-center justify-center mb-4 transition-colors">
-                <FileText className="w-5 h-5" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900 group-hover:text-white">
-                Produk Hukum ({stats.totalDesaKelurahan} Wilayah)
-              </h3>
-              <p className="text-sm text-slate-600 group-hover:text-emerald-100/85 mt-2 leading-relaxed">
-                Direktori lengkap {stats.totalDesa} Desa &amp; {stats.totalKelurahan} Kelurahan beserta Perbup Batas Wilayah dan UU/Perda Pembentukan.
+          {searchResults.length === 0 ? (
+            <div className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg rounded-xl bg-white shadow-md border border-gray-100 p-8 text-center">
+              <p className="text-sm font-bold text-slate-900">
+                Tidak ada desa, kelurahan, atau kecamatan yang cocok dengan &ldquo;{trimmedQuery}&rdquo;
+              </p>
+              <p className="text-xs text-slate-600 mt-1">
+                Periksa kembali ejaan nama wilayah atau telusuri direktori lengkap melalui tab Produk Hukum.
               </p>
             </div>
-            <div className="mt-5 pt-3 border-t border-stone-100 group-hover:border-emerald-800/80 flex items-center justify-between text-xs font-semibold text-emerald-800 group-hover:text-amber-400">
-              <span>Buka Produk Hukum</span>
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {searchResults.map((item) =>
+                renderWilayahCard(item, 'beranda-wilayah-card')
+              )}
             </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigate('berita-acara')}
-            className="group text-left bg-white hover:bg-emerald-950 hover:text-white rounded-xl p-6 border border-stone-200 hover:border-emerald-900 transition-all duration-150 flex flex-col justify-between cursor-pointer"
-          >
-            <div>
-              <div className="w-10 h-10 rounded-lg bg-amber-100 group-hover:bg-emerald-900 text-amber-900 group-hover:text-amber-400 flex items-center justify-center mb-4 transition-colors">
-                <FileCheck2 className="w-5 h-5" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900 group-hover:text-white">
-                Berita Acara ({stats.totalDesaKelurahan} Wilayah)
-              </h3>
-              <p className="text-sm text-slate-600 group-hover:text-emerald-100/85 mt-2 leading-relaxed">
-                Arsip kesepakatan pelacakan tapal batas definitif ({stats.totalBaFinal} selesai) dan pantauan berkas mediasi dalam proses.
-              </p>
-            </div>
-            <div className="mt-5 pt-3 border-t border-stone-100 group-hover:border-emerald-800/80 flex items-center justify-between text-xs font-semibold text-emerald-800 group-hover:text-amber-400">
-              <span>Buka Berita Acara</span>
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigate('progres')}
-            className="group text-left bg-white hover:bg-emerald-950 hover:text-white rounded-xl p-6 border border-stone-200 hover:border-emerald-900 transition-all duration-150 flex flex-col justify-between cursor-pointer"
-          >
-            <div>
-              <div className="w-10 h-10 rounded-lg bg-emerald-100 group-hover:bg-emerald-900 text-emerald-900 group-hover:text-amber-400 flex items-center justify-center mb-4 transition-colors">
-                <Activity className="w-5 h-5" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900 group-hover:text-white">
-                Progres Kegiatan
-              </h3>
-              <p className="text-sm text-slate-600 group-hover:text-emerald-100/85 mt-2 leading-relaxed">
-                Pantauan aktual capaian persentase segmen batas luar daerah (antar-kabupaten/kota) dan {stats.totalKecamatan} kecamatan dalam daerah.
-              </p>
-            </div>
-            <div className="mt-5 pt-3 border-t border-stone-100 group-hover:border-emerald-800/80 flex items-center justify-between text-xs font-semibold text-emerald-800 group-hover:text-amber-400">
-              <span>Pantau Progres</span>
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigate('webgis')}
-            className="group text-left bg-white hover:bg-emerald-950 hover:text-white rounded-xl p-6 border border-stone-200 hover:border-emerald-900 transition-all duration-150 flex flex-col justify-between cursor-pointer"
-          >
-            <div>
-              <div className="w-10 h-10 rounded-lg bg-amber-100 group-hover:bg-emerald-900 text-amber-900 group-hover:text-amber-400 flex items-center justify-center mb-4 transition-colors">
-                <Map className="w-5 h-5" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900 group-hover:text-white">
-                Peta WebGIS
-              </h3>
-              <p className="text-sm text-slate-600 group-hover:text-emerald-100/85 mt-2 leading-relaxed">
-                Peta interaktif garis batas administrasi tingkat kecamatan (merah) dan tingkat desa/kelurahan (biru).
-              </p>
-            </div>
-            <div className="mt-5 pt-3 border-t border-stone-100 group-hover:border-emerald-800/80 flex items-center justify-between text-xs font-semibold text-emerald-800 group-hover:text-amber-400">
-              <span>Buka Peta Spasial</span>
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </div>
-          </button>
-        </div>
-      </section>
+          )}
+        </section>
+      )}
     </div>
   );
 };

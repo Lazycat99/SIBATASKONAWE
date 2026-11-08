@@ -15,10 +15,8 @@ import {
   buildDokumenFromWilayah,
   buildProgresDalamFromWilayah,
   calculateDashboardStats,
-  getUniqueKecamatan,
-  generateDataJsSource
+  getUniqueKecamatan
 } from './data/boundaryData';
-import { generateStandaloneIndexHtml } from './data/standaloneTemplate';
 import { Navbar, NavTab } from './components/Navbar';
 import { HomeView } from './components/HomeView';
 import { DocumentCatalogView } from './components/DocumentCatalogView';
@@ -26,8 +24,7 @@ import { ProgressView } from './components/ProgressView';
 import { WebGisView } from './components/WebGisView';
 import {
   AddDocumentModal,
-  DocumentDetailModal,
-  VercelCodeModal
+  DocumentDetailModal
 } from './components/Modals';
 
 export default function App() {
@@ -36,7 +33,6 @@ export default function App() {
   const [progresLuar] = useState<ProgresBatasLuar[]>(INITIAL_PROGRES_LUAR);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isVercelModalOpen, setIsVercelModalOpen] = useState(false);
 
   const [selectedWilayah, setSelectedWilayah] = useState<WilayahKonawe | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<DokumenBatas | null>(null);
@@ -51,12 +47,6 @@ export default function App() {
     [wilayahList, dokumenList]
   );
   const kecamatanSuggestions = useMemo(() => getUniqueKecamatan(wilayahList), [wilayahList]);
-
-  const dataJsCode = useMemo(
-    () => generateDataJsSource(wilayahList, progresLuar, progresDalam),
-    [wilayahList, progresLuar, progresDalam]
-  );
-  const standaloneHtmlCode = useMemo(() => generateStandaloneIndexHtml(), []);
 
   const handleAddDocument = (input: NewDocumentInput) => {
     const rawName = input.namaDesa.trim();
@@ -108,7 +98,6 @@ export default function App() {
             onNavigate={setActiveTab}
             onSelectDocument={(doc) => setSelectedDoc(doc)}
             onSelectWilayah={(item) => setSelectedWilayah(item)}
-            onOpenVercelCode={() => setIsVercelModalOpen(true)}
           />
         )}
 
@@ -154,7 +143,7 @@ export default function App() {
         )}
       </main>
 
-      {/* INSTITUTIONAL FOOTER */}
+      {/* INSTITUTIONAL FOOTER (TANPA TAUTAN UNDUH KODE) */}
       <footer className="bg-white border-t border-stone-200 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 text-xs text-slate-600">
           <div className="space-y-1">
@@ -169,10 +158,10 @@ export default function App() {
           <div className="flex flex-wrap items-center gap-4">
             <button
               type="button"
-              onClick={() => setIsVercelModalOpen(true)}
-              className="text-emerald-800 hover:text-emerald-950 font-semibold transition-colors cursor-pointer"
+              onClick={() => setActiveTab('produk-hukum')}
+              className="text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
             >
-              Unduh Paket Kode (data.js &amp; index.html)
+              Direktori Produk Hukum
             </button>
             <span aria-hidden="true">·</span>
             <button
@@ -206,13 +195,6 @@ export default function App() {
           setSelectedProgresDalam(null);
         }}
         onOpenWebGis={handleOpenMapWithSegment}
-      />
-
-      <VercelCodeModal
-        isOpen={isVercelModalOpen}
-        onClose={() => setIsVercelModalOpen(false)}
-        dataJsCode={dataJsCode}
-        indexHtmlCode={standaloneHtmlCode}
       />
     </div>
   );

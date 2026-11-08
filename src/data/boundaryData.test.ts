@@ -5,9 +5,13 @@ import {
   INITIAL_DOKUMEN_BATAS,
   INITIAL_PROGRES_LUAR,
   INITIAL_PROGRES_DALAM,
+  AUTHORIZATION_CODE,
   calculateDashboardStats,
+  calculateBoundaryProgressRatio,
+  calculateTopKecamatanProgress,
   filterDocuments,
   filterWilayahKonawe,
+  getFeaturedFinalWilayah,
   getUniqueKecamatan,
   validateNewDocument,
   generateDataJsSource
@@ -24,6 +28,43 @@ test('calculateDashboardStats computes accurate dynamic counts from wilayahDataK
   assert.equal(stats.totalPerdaPembentukan, 287);
   assert.equal(stats.totalLinkPembentukan, 231);
   assert.equal(stats.totalLinkBatas, 50);
+});
+
+test('calculateBoundaryProgressRatio computes accurate doughnut chart slices from wilayahDataKonawe', () => {
+  const ratio = calculateBoundaryProgressRatio(wilayahDataKonawe);
+  assert.equal(ratio.totalWilayah, 348);
+  assert.equal(ratio.finalCount, 52);
+  assert.equal(ratio.belumPerbupCount, 296);
+  assert.equal(ratio.slices.length, 2);
+  assert.equal(ratio.slices[0].name, 'Final (Sah / Selesai)');
+  assert.equal(ratio.slices[0].value, 52);
+  assert.equal(ratio.slices[1].name, 'Belum Perbup');
+  assert.equal(ratio.slices[1].value, 296);
+});
+
+test('calculateTopKecamatanProgress computes descending Perbup completion percentages for top kecamatans', () => {
+  const top7 = calculateTopKecamatanProgress(wilayahDataKonawe, 7);
+  assert.equal(top7.length, 7);
+  for (let i = 1; i < top7.length; i++) {
+    assert.ok(
+      top7[i - 1].percentage >= top7[i].percentage,
+      `Expected descending order at index ${i}`
+    );
+  }
+  assert.ok(top7[0].percentage > 0);
+  assert.ok(top7[0].finalCount > 0);
+});
+
+test('getFeaturedFinalWilayah returns 6 to 9 Final Perbup records for progressive disclosure on Beranda', () => {
+  const sample6 = getFeaturedFinalWilayah(wilayahDataKonawe, 6);
+  assert.equal(sample6.length, 6);
+  for (const item of sample6) {
+    assert.ok(item.keterangan_batas.trim().length > 0);
+    assert.ok(!item.keterangan_batas.toLowerCase().includes('draf'));
+  }
+
+  const sample9 = getFeaturedFinalWilayah(wilayahDataKonawe, 9);
+  assert.equal(sample9.length, 9);
 });
 
 test('filterWilayahKonawe filters 348 WilayahKonawe records by kecamatan, category, and search query', () => {
@@ -93,14 +134,29 @@ test('getUniqueKecamatan returns all 28 sorted unique kecamatan names from wilay
   assert.ok(list.includes('Tongauna Utara'));
 });
 
-test('validateNewDocument rejects invalid inputs and accepts valid document payload', () => {
+test('validateNewDocument rejects invalid inputs or wrong Sandi Otorisasi and accepts valid document payload with TAPEM2026', () => {
+  const wrongSandi = validateNewDocument({
+    namaDesa: 'Desa Wawonggole',
+    kecamatan: 'Unaaha',
+    jenisDokumen: 'Perbup',
+    status: 'Final',
+    nomorDokumen: 'Perbup Nomor 1 Tahun 2025',
+    linkDrive: 'https://drive.google.com/drive/folders/1valid',
+    sandiOtorisasi: 'SALAH123'
+  });
+  assert.equal(wrongSandi.valid, false);
+  if (!wrongSandi.valid) {
+    assert.ok(wrongSandi.error.includes('Sandi Salah'));
+  }
+
   const emptyDesa = validateNewDocument({
     namaDesa: 'A',
     kecamatan: 'Unaaha',
     jenisDokumen: 'Perbup',
     status: 'Final',
     nomorDokumen: 'Perbup Nomor 1 Tahun 2025',
-    linkDrive: 'https://drive.google.com/file/d/123'
+    linkDrive: 'https://drive.google.com/file/d/123',
+    sandiOtorisasi: AUTHORIZATION_CODE
   });
   assert.equal(emptyDesa.valid, false);
 
@@ -110,7 +166,8 @@ test('validateNewDocument rejects invalid inputs and accepts valid document payl
     jenisDokumen: 'Perbup',
     status: 'Final',
     nomorDokumen: 'Perbup Nomor 1 Tahun 2025',
-    linkDrive: 'drive.google.com/tanpa-https'
+    linkDrive: 'drive.google.com/tanpa-https',
+    sandiOtorisasi: AUTHORIZATION_CODE
   });
   assert.equal(badUrl.valid, false);
 
@@ -120,7 +177,8 @@ test('validateNewDocument rejects invalid inputs and accepts valid document payl
     jenisDokumen: 'Perbup',
     status: 'Final',
     nomorDokumen: 'Perbup Nomor 1 Tahun 2025',
-    linkDrive: 'https://drive.google.com/drive/folders/1valid'
+    linkDrive: 'https://drive.google.com/drive/folders/1valid',
+    sandiOtorisasi: AUTHORIZATION_CODE
   });
   assert.equal(validDoc.valid, true);
 });

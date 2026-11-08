@@ -247,6 +247,128 @@ export function calculateDashboardStats(
   };
 }
 
+export interface BoundaryProgressSlice {
+  name: 'Final (Sah / Selesai)' | 'Belum Perbup';
+  value: number;
+  percentage: number;
+  color: string;
+}
+
+export interface BoundaryProgressSummary {
+  totalWilayah: number;
+  finalCount: number;
+  belumPerbupCount: number;
+  finalPercentage: number;
+  belumPerbupPercentage: number;
+  slices: BoundaryProgressSlice[];
+}
+
+/**
+ * Menghitung rasio dinamis dari array wilayahDataKonawe yang memiliki status dokumen
+ * 'Final (Sah / Selesai)' berbanding dengan total wilayah selain itu ('Belum Perbup')
+ * untuk komponen Grafik Progres Penetapan Batas (Doughnut Chart).
+ */
+export function calculateBoundaryProgressRatio(
+  wilayahList: WilayahKonawe[] = wilayahDataKonawe
+): BoundaryProgressSummary {
+  const totalWilayah = wilayahList.length;
+  const finalCount = wilayahList.filter((item) => {
+    const ket = item.keterangan_batas.trim().toLowerCase();
+    if (!ket) return false;
+    const isDraft = ket.includes('draf') || ket.includes('tahap penyusunan');
+    const isBaOnly = ket.startsWith('ba ') || ket.includes('berita acara');
+    return !isDraft && !isBaOnly;
+  }).length;
+
+  const belumPerbupCount = Math.max(0, totalWilayah - finalCount);
+  const finalPercentage =
+    totalWilayah > 0 ? Number(((finalCount / totalWilayah) * 100).toFixed(1)) : 0;
+  const belumPerbupPercentage =
+    totalWilayah > 0 ? Number((100 - finalPercentage).toFixed(1)) : 0;
+
+  return {
+    totalWilayah,
+    finalCount,
+    belumPerbupCount,
+    finalPercentage,
+    belumPerbupPercentage,
+    slices: [
+      {
+        name: 'Final (Sah / Selesai)',
+        value: finalCount,
+        percentage: finalPercentage,
+        color: '#065f46' // emerald-800
+      },
+      {
+        name: 'Belum Perbup',
+        value: belumPerbupCount,
+        percentage: belumPerbupPercentage,
+        color: '#d6d3d1' // stone-300
+      }
+    ]
+  };
+}
+
+export interface KecamatanProgressStat {
+  kecamatan: string;
+  totalWilayah: number;
+  finalCount: number;
+  percentage: number;
+  ratioLabel: string;
+}
+
+/**
+ * Menghitung persentase penyelesaian Perbup ('Final') untuk setiap kecamatan dari wilayahDataKonawe,
+ * mengurutkannya secara descending (tertinggi ke terendah), dan mengambil N kecamatan teratas (default 7).
+ */
+export function calculateTopKecamatanProgress(
+  wilayahList: WilayahKonawe[] = wilayahDataKonawe,
+  limit = 7
+): KecamatanProgressStat[] {
+  const byKecamatan = new Map<string, { total: number; final: number }>();
+
+  for (const item of wilayahList) {
+    const kec = formatNamaKecamatan(item.kecamatan);
+    if (!kec) continue;
+
+    const current = byKecamatan.get(kec) ?? { total: 0, final: 0 };
+    current.total += 1;
+
+    const ket = item.keterangan_batas.trim().toLowerCase();
+    if (ket.length > 0) {
+      const isDraft = ket.includes('draf') || ket.includes('tahap penyusunan');
+      const isBaOnly = ket.startsWith('ba ') || ket.includes('berita acara');
+      if (!isDraft && !isBaOnly) {
+        current.final += 1;
+      }
+    }
+
+    byKecamatan.set(kec, current);
+  }
+
+  const results: KecamatanProgressStat[] = Array.from(byKecamatan.entries()).map(
+    ([kecamatan, counts]) => {
+      const percentage =
+        counts.total > 0 ? Number(((counts.final / counts.total) * 100).toFixed(1)) : 0;
+      return {
+        kecamatan,
+        totalWilayah: counts.total,
+        finalCount: counts.final,
+        percentage,
+        ratioLabel: `${counts.final}/${counts.total} Desa`
+      };
+    }
+  );
+
+  results.sort((a, b) => {
+    if (b.percentage !== a.percentage) return b.percentage - a.percentage;
+    if (b.finalCount !== a.finalCount) return b.finalCount - a.finalCount;
+    return a.kecamatan.localeCompare(b.kecamatan, 'id');
+  });
+
+  return results.slice(0, Math.max(1, limit));
+}
+
 /**
  * Mengambil daftar unik Kecamatan yang terurut alfabetis secara dinamis dari wilayahDataKonawe.
  */
@@ -527,6 +649,24 @@ export function filterWilayahKonawe(
   });
 }
 
+/**
+ * Mengambil sampel wilayah (default 6, rentang 6-9) dari wilayahDataKonawe
+ * yang khusus berstatus dokumen 'Final (Sah / Selesai)' (Perbup Final)
+ * untuk ditampilkan pada bagian 'Arsip Batas Definitif Terbaru' di Beranda
+ * saat kolom pencarian masih kosong (Progressive Disclosure).
+ */
+export function getFeaturedFinalWilayah(
+  wilayahList: WilayahKonawe[] = wilayahDataKonawe,
+  limit = 6
+): WilayahKonawe[] {
+  const finalWilayah = filterWilayahKonawe(wilayahList, {
+    category: 'PERBUP_FINAL'
+  });
+  return finalWilayah.slice(0, Math.max(1, limit));
+}
+
+export const AUTHORIZATION_CODE = 'TAPEM2026';
+
 export interface NewDocumentInput {
   kode?: string;
   namaDesa: string;
@@ -538,14 +678,21 @@ export interface NewDocumentInput {
   linkDrive: string;
   koordinatUtama?: string;
   keterangan?: string;
+  sandiOtorisasi?: string;
 }
 
 /**
- * Validasi input form penambahan dokumen baru oleh staf.
+ * Validasi input form penambahan dokumen baru oleh staf beserta Sandi Otorisasi.
  */
 export function validateNewDocument(
   input: NewDocumentInput
 ): { valid: true } | { valid: false; error: string } {
+  if (input.sandiOtorisasi !== undefined && input.sandiOtorisasi !== AUTHORIZATION_CODE) {
+    return {
+      valid: false,
+      error: 'Sandi Salah: Sandi Otorisasi wajib diisi dengan benar untuk menyimpan data.'
+    };
+  }
   if (!input.namaDesa || input.namaDesa.trim().length < 3) {
     return { valid: false, error: 'Nama Desa / Kelurahan wajib diisi (minimal 3 karakter).' };
   }
