@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 @layer base {
   :root {
@@ -26,3 +27,42 @@
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
+
+.leaflet-container {
+  font-family: var(--font-sans);
+  z-index: 10;
+}
+
+.sibatas-popup .leaflet-popup-content-wrapper {
+  border-radius: 0.75rem;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.18), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.sibatas-popup .leaflet-popup-content {
+  margin: 0;
+  min-width: 260px;
+}
+
+.sibatas-tooltip {
+  background-color: rgba(15, 23, 42, 0.92);
+  color: #f8fafc;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  border-radius: 0.5rem;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.sibatas-tooltip::before {
+  border-top-color: rgba(15, 23, 42, 0.92) !important;
+}
+
+.sibatas-map-minimal .leaflet-tile-pane {
+  filter: grayscale(65%) brightness(105%) contrast(92%);
+}
+
+

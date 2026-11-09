@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {
   wilayahDataKonawe,
   INITIAL_DOKUMEN_BATAS,
@@ -14,7 +15,11 @@ import {
   getFeaturedFinalWilayah,
   getUniqueKecamatan,
   validateNewDocument,
-  generateDataJsSource
+  generateDataJsSource,
+  utm51SToLngLat,
+  normalizeKonaweGeoJson,
+  formatGeoJsonFeatureInfo,
+  findMatchingGeoJsonFeatures
 } from './boundaryData';
 
 test('calculateDashboardStats computes accurate dynamic counts from wilayahDataKonawe', () => {
@@ -134,7 +139,9 @@ test('getUniqueKecamatan returns all 28 sorted unique kecamatan names from wilay
   assert.ok(list.includes('Tongauna Utara'));
 });
 
-test('validateNewDocument rejects invalid inputs or wrong Sandi Otorisasi and accepts valid document payload with TAPEM2026', () => {
+test('validateNewDocument rejects invalid inputs or wrong Sandi Otorisasi and accepts valid document payload with KONAWE2026', () => {
+  assert.equal(AUTHORIZATION_CODE, 'KONAWE2026');
+
   const wrongSandi = validateNewDocument({
     namaDesa: 'Desa Wawonggole',
     kecamatan: 'Unaaha',
@@ -146,7 +153,21 @@ test('validateNewDocument rejects invalid inputs or wrong Sandi Otorisasi and ac
   });
   assert.equal(wrongSandi.valid, false);
   if (!wrongSandi.valid) {
-    assert.ok(wrongSandi.error.includes('Sandi Salah'));
+    assert.equal(wrongSandi.error, 'Akses Ditolak: Sandi Otorisasi Tidak Valid.');
+  }
+
+  const emptySandi = validateNewDocument({
+    namaDesa: 'Desa Wawonggole',
+    kecamatan: 'Unaaha',
+    jenisDokumen: 'Perbup',
+    status: 'Final',
+    nomorDokumen: 'Perbup Nomor 1 Tahun 2025',
+    linkDrive: 'https://drive.google.com/drive/folders/1valid',
+    sandiOtorisasi: ''
+  });
+  assert.equal(emptySandi.valid, false);
+  if (!emptySandi.valid) {
+    assert.equal(emptySandi.error, 'Akses Ditolak: Sandi Otorisasi Tidak Valid.');
   }
 
   const emptyDesa = validateNewDocument({
@@ -156,7 +177,7 @@ test('validateNewDocument rejects invalid inputs or wrong Sandi Otorisasi and ac
     status: 'Final',
     nomorDokumen: 'Perbup Nomor 1 Tahun 2025',
     linkDrive: 'https://drive.google.com/file/d/123',
-    sandiOtorisasi: AUTHORIZATION_CODE
+    sandiOtorisasi: 'KONAWE2026'
   });
   assert.equal(emptyDesa.valid, false);
 
@@ -167,7 +188,7 @@ test('validateNewDocument rejects invalid inputs or wrong Sandi Otorisasi and ac
     status: 'Final',
     nomorDokumen: 'Perbup Nomor 1 Tahun 2025',
     linkDrive: 'drive.google.com/tanpa-https',
-    sandiOtorisasi: AUTHORIZATION_CODE
+    sandiOtorisasi: 'KONAWE2026'
   });
   assert.equal(badUrl.valid, false);
 
@@ -178,12 +199,16 @@ test('validateNewDocument rejects invalid inputs or wrong Sandi Otorisasi and ac
     status: 'Final',
     nomorDokumen: 'Perbup Nomor 1 Tahun 2025',
     linkDrive: 'https://drive.google.com/drive/folders/1valid',
-    sandiOtorisasi: AUTHORIZATION_CODE
+    sandiOtorisasi: 'KONAWE2026'
   });
   assert.equal(validDoc.valid, true);
 });
 
-test('generateDataJsSource generates valid JS code containing wilayahDataKonawe', () => {
+test('generateDataJsSource generates valid JS code containing wilayahDataKonawe and 2 outer boundary segments', () => {
+  assert.equal(INITIAL_PROGRES_LUAR.length, 2);
+  assert.equal(INITIAL_PROGRES_LUAR[0].segmen, 'Kota Kendari - Kab. Konawe');
+  assert.equal(INITIAL_PROGRES_LUAR[1].segmen, 'Kab. Konawe Utara - Kab. Konawe');
+
   const code = generateDataJsSource(
     wilayahDataKonawe,
     INITIAL_PROGRES_LUAR,
@@ -192,4 +217,51 @@ test('generateDataJsSource generates valid JS code containing wilayahDataKonawe'
   assert.ok(code.includes('const wilayahDataKonawe ='));
   assert.ok(code.includes('74.02.01.1001'));
   assert.ok(code.includes('Kota Kendari - Kab. Konawe'));
+  assert.ok(!code.includes('Kab. Konawe Selatan - Kab. Konawe'));
+  assert.ok(!code.includes('Kab. Kolaka Timur - Kab. Konawe'));
 });
+
+test('normalizeKonaweGeoJson converts UTM 51S coordinates from public/batas_konawe.json into valid WGS84 polygons', () => {
+  const raw = JSON.parse(fs.readFileSync('public/batas_konawe.json', 'utf8'));
+  const normalized = normalizeKonaweGeoJson(raw);
+
+  assert.equal(normalized.type, 'FeatureCollection');
+  assert.equal(normalized.features.length, 367);
+
+  const firstCoord = (normalized.features[0].geometry.coordinates as number[][][])[0][0];
+  assert.ok(firstCoord[0] > 121 && firstCoord[0] < 123.5, `Expected WGS84 longitude in Konawe, got ${firstCoord[0]}`);
+  assert.ok(firstCoord[1] > -4.5 && firstCoord[1] < -2.5, `Expected WGS84 latitude in Konawe, got ${firstCoord[1]}`);
+
+  // Idempotent when already in WGS84
+  const [lng2, lat2] = utm51SToLngLat(firstCoord[0], firstCoord[1]);
+  assert.equal(lng2, firstCoord[0]);
+  assert.equal(lat2, firstCoord[1]);
+
+  const formatted = formatGeoJsonFeatureInfo(normalized.features[0].properties);
+  assert.equal(formatted.namaWilayah, 'Desa Mekar');
+  assert.equal(formatted.kecamatan, 'Kecamatan Soropia');
+  assert.equal(formatted.statusKategori, 'TIDAK');
+
+  const tobimeitaByFullLabel = findMatchingGeoJsonFeatures(
+    normalized.features,
+    'Desa Tobimeita, Kecamatan Wonggeduku Barat'
+  );
+  assert.equal(tobimeitaByFullLabel.length, 1);
+  assert.equal(tobimeitaByFullLabel[0].properties.Name, 'DESA TOBIMEITA');
+
+  const tobimeitaByShortParam = findMatchingGeoJsonFeatures(
+    normalized.features,
+    'Tobimeita'
+  );
+  assert.equal(tobimeitaByShortParam.length, 1);
+  assert.equal(tobimeitaByShortParam[0].properties.OBJECTID, 253);
+
+  const kasumewuhoMatch = findMatchingGeoJsonFeatures(
+    normalized.features,
+    'Desa Kasumewuho, Kecamatan Wawotobi'
+  );
+  assert.equal(kasumewuhoMatch.length, 1);
+  assert.equal(kasumewuhoMatch[0].properties.Name, 'DESA KASUMEWUHO');
+});
+
+

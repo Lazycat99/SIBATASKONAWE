@@ -458,36 +458,33 @@ export const DocumentCatalogView: React.FC<DocumentCatalogViewProps> = ({
 
                         <td className="py-4 px-5 max-w-xs">
                           {ketBatas ? (
-                            <div>
-                              <div
-                                className={`inline-flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap ${
-                                  isDraft ? 'text-amber-800' : 'text-emerald-800'
-                                }`}
+                            <div className="space-y-1.5">
+                              <span
+                                className={
+                                  isDraft
+                                    ? 'inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full font-medium whitespace-nowrap'
+                                    : 'inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-800 text-xs rounded-full font-medium whitespace-nowrap'
+                                }
                               >
-                                {isDraft ? (
-                                  <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                ) : (
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                                )}
-                                <span>
-                                  {isDraft ? 'Draf Perbup (On-Going)' : 'Perbup / Batas Terdata'}
-                                </span>
-                              </div>
-                              <p className="text-xs text-slate-600 mt-0.5 line-clamp-2">
+                                {isDraft ? 'Draf Perbup (On-Going)' : 'Final / Tersedia'}
+                              </span>
+                              <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
                                 {ketBatas}
                               </p>
                             </div>
                           ) : (
-                            <span className="text-xs text-slate-400 font-mono">Belum Terbit Perbup</span>
+                            <span className="inline-block px-2 py-1 bg-slate-100 text-slate-500 text-xs rounded-full whitespace-nowrap">
+                              Belum Terbit Perbup
+                            </span>
                           )}
                         </td>
 
                         <td className="py-4 px-5 text-right whitespace-nowrap">
-                          <div className="inline-flex items-center justify-end gap-2">
+                          <div className="inline-flex items-center justify-end gap-3">
                             <button
                               type="button"
                               onClick={() => onSelectWilayah(item)}
-                              className="px-3 py-2 text-xs font-medium text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+                              className="text-emerald-700 text-sm font-semibold hover:underline cursor-pointer whitespace-nowrap"
                             >
                               Detail
                             </button>
@@ -499,12 +496,12 @@ export const DocumentCatalogView: React.FC<DocumentCatalogViewProps> = ({
                                   href={url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="px-3 py-2 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
+                                  className="px-2.5 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-md transition-colors inline-flex items-center gap-1 whitespace-nowrap"
                                 >
                                   <span>
                                     UU/Perda{item.link_pembentukan.length > 1 ? ` #${idx + 1}` : ''}
                                   </span>
-                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  <ExternalLink className="w-3 h-3" />
                                 </a>
                               ))}
 
@@ -513,16 +510,16 @@ export const DocumentCatalogView: React.FC<DocumentCatalogViewProps> = ({
                                 href={item.link_batas}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-3.5 py-2 text-xs font-semibold text-white bg-emerald-900 hover:bg-emerald-800 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
+                                className="bg-emerald-700 text-white hover:bg-emerald-800 px-3 py-1.5 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
                               >
-                                <span>Unduh / Buka Dokumen</span>
+                                <span>Unduh Dokumen</span>
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </a>
                             ) : (
                               <button
                                 type="button"
                                 disabled
-                                className="px-3.5 py-2 text-xs font-semibold text-slate-500 bg-stone-200 border border-stone-300 rounded-lg cursor-not-allowed whitespace-nowrap"
+                                className="px-2 py-1.5 text-xs text-slate-400 bg-transparent cursor-not-allowed opacity-50 whitespace-nowrap"
                               >
                                 Dokumen Belum Tersedia
                               </button>
@@ -565,24 +562,23 @@ export const DocumentCatalogView: React.FC<DocumentCatalogViewProps> = ({
 
                     {ketBatas ? (
                       <div className="mt-3">
-                        <div
-                          className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
-                            isDraft ? 'text-amber-800' : 'text-emerald-800'
-                          }`}
+                        <span
+                          className={
+                            isDraft
+                              ? 'inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full font-medium'
+                              : 'inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-800 text-xs rounded-full font-medium'
+                          }
                         >
-                          {isDraft ? (
-                            <Clock className="w-4 h-4 text-amber-600 shrink-0" />
-                          ) : (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
-                          )}
-                          <span>{isDraft ? 'Draf Perbup (On-Going)' : 'Perbup Batas (Final)'}</span>
-                        </div>
-                        <p className="text-xs text-slate-700 mt-1 leading-relaxed">{ketBatas}</p>
+                          {isDraft ? 'Draf Perbup (On-Going)' : 'Final / Tersedia'}
+                        </span>
+                        <p className="text-xs text-slate-700 mt-1.5 leading-relaxed">{ketBatas}</p>
                       </div>
                     ) : (
-                      <p className="text-xs text-slate-400 font-mono mt-3">
-                        Belum Terbit Perbup Batas Wilayah
-                      </p>
+                      <div className="mt-3">
+                        <span className="inline-block px-2 py-1 bg-slate-100 text-slate-500 text-xs rounded-full">
+                          Belum Terbit Perbup
+                        </span>
+                      </div>
                     )}
 
                     {ketPerda && (
@@ -596,9 +592,9 @@ export const DocumentCatalogView: React.FC<DocumentCatalogViewProps> = ({
                     <button
                       type="button"
                       onClick={() => onSelectWilayah(item)}
-                      className="px-3 py-2 text-xs font-medium text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+                      className="text-emerald-700 text-sm font-semibold hover:underline cursor-pointer whitespace-nowrap"
                     >
-                      Rincian Wilayah
+                      Detail
                     </button>
 
                     <div className="flex flex-wrap items-center gap-2">
@@ -609,12 +605,12 @@ export const DocumentCatalogView: React.FC<DocumentCatalogViewProps> = ({
                             href={url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-3 py-2 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
+                            className="px-2.5 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-md transition-colors inline-flex items-center gap-1 whitespace-nowrap"
                           >
                             <span>
                               UU/Perda{item.link_pembentukan.length > 1 ? ` #${idx + 1}` : ''}
                             </span>
-                            <ExternalLink className="w-3.5 h-3.5" />
+                            <ExternalLink className="w-3 h-3" />
                           </a>
                         ))}
 
@@ -623,16 +619,16 @@ export const DocumentCatalogView: React.FC<DocumentCatalogViewProps> = ({
                           href={item.link_batas}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-3.5 py-2 text-xs font-semibold text-white bg-emerald-900 hover:bg-emerald-800 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
+                          className="bg-emerald-700 text-white hover:bg-emerald-800 px-3 py-1.5 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
                         >
-                          <span>Unduh / Buka Dokumen</span>
+                          <span>Unduh Dokumen</span>
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                       ) : (
                         <button
                           type="button"
                           disabled
-                          className="px-3.5 py-2 text-xs font-semibold text-slate-500 bg-stone-200 border border-stone-300 rounded-lg cursor-not-allowed whitespace-nowrap"
+                          className="px-2 py-1.5 text-xs text-slate-400 bg-transparent cursor-not-allowed opacity-50 whitespace-nowrap"
                         >
                           Dokumen Belum Tersedia
                         </button>
@@ -664,7 +660,7 @@ export const DocumentCatalogView: React.FC<DocumentCatalogViewProps> = ({
                   <th className="py-3.5 px-5 whitespace-nowrap">Nama Desa / Kelurahan</th>
                   <th className="py-3.5 px-5 whitespace-nowrap">Kecamatan</th>
                   <th className="py-3.5 px-5 whitespace-nowrap">Kategori Status</th>
-                  <th className="py-3.5 px-5 whitespace-nowrap">Nomor / Keterangan BA</th>
+                  <th className="py-3.5 px-5 whitespace-nowrap">Kelengkapan Berkas</th>
                   <th className="py-3.5 px-5 text-right whitespace-nowrap">Unduh / Buka Dokumen</th>
                 </tr>
               </thead>
@@ -679,8 +675,8 @@ export const DocumentCatalogView: React.FC<DocumentCatalogViewProps> = ({
                   return (
                     <tr key={doc.id} className="hover:bg-stone-50/90 transition-colors">
                       <td className="py-4 px-5 whitespace-nowrap">
-                        <div className="font-bold text-slate-900">{doc.namaDesa}</div>
-                        <div className="text-xs text-slate-500 mt-0.5 font-mono tabular-nums">
+                        <div className="text-slate-800 font-semibold">{doc.namaDesa}</div>
+                        <div className="text-xs text-slate-400 mt-1 font-mono tabular-nums">
                           {doc.kodeWilayah} · {doc.tanggalUpdate}
                         </div>
                       </td>
@@ -690,35 +686,40 @@ export const DocumentCatalogView: React.FC<DocumentCatalogViewProps> = ({
                       </td>
 
                       <td className="py-4 px-5 whitespace-nowrap">
-                        <div
-                          className={`inline-flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap ${
-                            isFinal ? 'text-emerald-800' : 'text-amber-800'
-                          }`}
+                        <span
+                          className={
+                            isFinal
+                              ? 'inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-xs font-semibold rounded-full whitespace-nowrap'
+                              : 'inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 text-orange-700 border border-orange-200/70 text-xs font-semibold rounded-full whitespace-nowrap'
+                          }
                         >
                           {isFinal ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                           ) : (
-                            <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                            <Clock className="w-3.5 h-3.5 text-orange-500 shrink-0" />
                           )}
                           <span>{statusLabel}</span>
-                        </div>
+                        </span>
                       </td>
 
-                      <td className="py-4 px-5">
-                        <div className="font-mono text-xs font-medium text-slate-800 tabular-nums">
-                          {doc.nomorDokumen}
-                        </div>
-                        <div className="text-xs text-slate-500 mt-0.5 line-clamp-1 max-w-md">
-                          {doc.keterangan}
-                        </div>
+                      <td className="py-4 px-5 whitespace-nowrap">
+                        {isFinal ? (
+                          <span className="text-slate-700 text-sm font-medium">
+                            Bundel Kesepakatan &amp; Pelacakan
+                          </span>
+                        ) : (
+                          <span className="italic text-slate-400 text-sm">
+                            Tahap Pengumpulan Data Form
+                          </span>
+                        )}
                       </td>
 
                       <td className="py-4 px-5 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center justify-end gap-2">
+                        <div className="inline-flex items-center justify-end gap-3">
                           <button
                             type="button"
                             onClick={() => onSelectDocument(doc)}
-                            className="px-3 py-2 text-xs font-medium text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+                            className="text-emerald-700 text-sm font-semibold hover:underline cursor-pointer whitespace-nowrap"
                           >
                             Detail
                           </button>
@@ -727,16 +728,16 @@ export const DocumentCatalogView: React.FC<DocumentCatalogViewProps> = ({
                               href={doc.linkDrive}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-3.5 py-2 text-xs font-semibold text-white bg-emerald-900 hover:bg-emerald-800 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
+                              className="bg-emerald-700 text-white hover:bg-emerald-800 px-3 py-1.5 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
                             >
-                              <span>Unduh / Buka Dokumen</span>
+                              <span>Unduh Dokumen</span>
                               <ExternalLink className="w-3.5 h-3.5" />
                             </a>
                           ) : (
                             <button
                               type="button"
                               disabled
-                              className="px-3.5 py-2 text-xs font-semibold text-slate-500 bg-stone-200 border border-stone-300 rounded-lg cursor-not-allowed whitespace-nowrap"
+                              className="px-2 py-1.5 text-xs text-slate-400 bg-transparent cursor-not-allowed opacity-50 whitespace-nowrap"
                             >
                               Dokumen Belum Tersedia
                             </button>
@@ -770,28 +771,39 @@ export const DocumentCatalogView: React.FC<DocumentCatalogViewProps> = ({
                     <span className="font-mono tabular-nums">{doc.kodeWilayah}</span>
                   </div>
 
-                  <h3 className="text-lg font-bold text-slate-900">{doc.namaDesa}</h3>
-
-                  <p className="font-mono text-xs text-slate-700 mt-1 tabular-nums">
-                    {doc.nomorDokumen}
-                  </p>
-
-                  <div
-                    className={`mt-3 inline-flex items-center gap-1.5 text-xs font-semibold ${
-                      isFinal ? 'text-emerald-800' : 'text-amber-800'
-                    }`}
-                  >
-                    {isFinal ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
-                    ) : (
-                      <Clock className="w-4 h-4 text-amber-600 shrink-0" />
-                    )}
-                    <span>{statusLabel}</span>
+                  <h3 className="text-lg font-semibold text-slate-800">{doc.namaDesa}</h3>
+                  <div className="text-xs text-slate-400 mt-1 font-mono tabular-nums">
+                    {doc.kodeWilayah} · {doc.tanggalUpdate}
                   </div>
 
-                  <p className="text-xs text-slate-600 mt-3 leading-relaxed">
-                    {doc.keterangan}
-                  </p>
+                  <div className="mt-3">
+                    <span
+                      className={
+                        isFinal
+                          ? 'inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-xs font-semibold rounded-full'
+                          : 'inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 text-orange-700 border border-orange-200/70 text-xs font-semibold rounded-full'
+                      }
+                    >
+                      {isFinal ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      ) : (
+                        <Clock className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                      )}
+                      <span>{statusLabel}</span>
+                    </span>
+                  </div>
+
+                  <div className="mt-3">
+                    {isFinal ? (
+                      <span className="text-slate-700 text-sm font-medium">
+                        Bundel Kesepakatan &amp; Pelacakan
+                      </span>
+                    ) : (
+                      <span className="italic text-slate-400 text-sm">
+                        Tahap Pengumpulan Data Form
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between gap-2">

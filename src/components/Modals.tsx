@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   ExternalLink,
@@ -11,14 +11,12 @@ import {
   Clock
 } from 'lucide-react';
 import {
-  AUTHORIZATION_CODE,
   DokumenBatas,
   NewDocumentInput,
   ProgresBatasLuar,
   ProgresBatasDalam,
   WilayahKonawe,
-  formatNamaKecamatan,
-  validateNewDocument
+  formatNamaKecamatan
 } from '../data/boundaryData';
 
 interface AddDocumentModalProps {
@@ -42,46 +40,52 @@ export const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
   const [linkDrive, setLinkDrive] = useState('https://drive.google.com/drive/folders/');
   const [koordinatUtama, setKoordinatUtama] = useState('');
   const [keterangan, setKeterangan] = useState('');
-  const [sandiOtorisasi, setSandiOtorisasi] = useState('');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [authPassword, setAuthPassword] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Kosongkan kembali kolom sandi setiap kali modal ditutup agar aman
+  useEffect(() => {
+    if (!isOpen) {
+      setAuthPassword('');
+      setAuthError(null);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const isAuthorized = sandiOtorisasi === AUTHORIZATION_CODE;
+  const handleCloseModal = () => {
+    setAuthPassword('');
+    setAuthError(null);
+    onClose();
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (sandiOtorisasi !== AUTHORIZATION_CODE) {
-      setErrorMsg('Sandi Salah: Sandi Otorisasi tidak sesuai.');
-      return;
+
+    if (authPassword === 'KONAWE2026') {
+      const payload: NewDocumentInput = {
+        namaDesa: namaDesa.trim() || 'Desa Konawe Baru',
+        kecamatan: kecamatan.trim() || 'Padangguni',
+        jenisDokumen,
+        status,
+        nomorDokumen: nomorDokumen.trim() || 'Perbup Konawe Nomor 01 Tahun 2026',
+        linkDrive: linkDrive.trim(),
+        koordinatUtama,
+        keterangan,
+        sandiOtorisasi: authPassword
+      };
+
+      onAddDocument(payload);
+      setNamaDesa('');
+      setNomorDokumen('');
+      setKoordinatUtama('');
+      setKeterangan('');
+      setAuthPassword('');
+      setAuthError(null);
+      onClose();
+    } else {
+      setAuthError('Akses Ditolak: Sandi Otorisasi Tidak Valid.');
     }
-
-    const payload: NewDocumentInput = {
-      namaDesa,
-      kecamatan,
-      jenisDokumen,
-      status,
-      nomorDokumen,
-      linkDrive,
-      koordinatUtama,
-      keterangan,
-      sandiOtorisasi
-    };
-
-    const validation = validateNewDocument(payload);
-    if (!validation.valid) {
-      setErrorMsg(validation.error);
-      return;
-    }
-
-    onAddDocument(payload);
-    setNamaDesa('');
-    setNomorDokumen('');
-    setKoordinatUtama('');
-    setKeterangan('');
-    setSandiOtorisasi('');
-    setErrorMsg(null);
-    onClose();
   };
 
   return (
@@ -103,7 +107,7 @@ export const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCloseModal}
             aria-label="Tutup dialog tambah dokumen"
             className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition-colors cursor-pointer"
           >
@@ -111,17 +115,7 @@ export const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          {errorMsg && (
-            <div
-              role="alert"
-              data-testid="modal-add-error"
-              className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs font-medium text-red-800"
-            >
-              {errorMsg}
-            </div>
-          )}
-
+        <form onSubmit={handleSubmit} noValidate className="mt-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="input-nama-desa" className="block text-xs font-semibold text-slate-700 mb-1">
@@ -258,18 +252,25 @@ export const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
               id="input-sandi-otorisasi"
               data-testid="input-sandi-otorisasi"
               type="password"
-              required
-              value={sandiOtorisasi}
+              value={authPassword}
               onChange={(e) => {
-                setSandiOtorisasi(e.target.value);
-                if (errorMsg) setErrorMsg(null);
+                setAuthPassword(e.target.value);
+                if (authError) setAuthError(null);
               }}
               placeholder="Masukkan Sandi Otorisasi resmi petugas..."
-              className="w-full px-3.5 py-2 rounded-lg border border-stone-300 text-sm font-mono focus:outline-none focus:border-emerald-700"
+              className={`w-full px-3.5 py-2 rounded-lg border text-sm font-mono focus:outline-none ${
+                authError
+                  ? 'border-red-500 bg-red-50/40 focus:border-red-600'
+                  : 'border-stone-300 focus:border-emerald-700'
+              }`}
             />
-            {sandiOtorisasi.length > 0 && !isAuthorized && (
-              <p role="alert" className="text-xs font-semibold text-red-700 mt-1">
-                Sandi Salah — masukkan kode otorisasi resmi untuk mengaktifkan tombol simpan.
+            {authError && (
+              <p
+                role="alert"
+                data-testid="auth-password-error"
+                className="text-xs font-semibold text-red-600 mt-1.5"
+              >
+                {authError}
               </p>
             )}
           </div>
@@ -277,7 +278,8 @@ export const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
           <div className="pt-4 border-t border-stone-200 flex items-center justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
+              data-testid="btn-cancel-document"
+              onClick={handleCloseModal}
               className="px-4 py-2 text-xs font-semibold text-slate-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer"
             >
               Batal
@@ -285,8 +287,7 @@ export const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
             <button
               type="submit"
               data-testid="btn-submit-document"
-              disabled={!isAuthorized}
-              className="px-5 py-2 text-xs font-semibold text-white bg-emerald-900 hover:bg-emerald-800 disabled:bg-stone-300 disabled:text-slate-500 disabled:cursor-not-allowed rounded-lg transition-colors cursor-pointer"
+              className="px-5 py-2 text-xs font-semibold text-white bg-emerald-900 hover:bg-emerald-800 rounded-lg transition-colors cursor-pointer"
             >
               Simpan ke Basis Data
             </button>

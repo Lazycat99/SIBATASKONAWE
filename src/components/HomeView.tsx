@@ -272,127 +272,66 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <span className="tabular-nums">WGS-84 / UTM 51S</span>
               </div>
 
-              {/* Vektor Ikonografi Peta Poligon & Jaringan Kartometrik */}
-              <svg
-                viewBox="0 0 420 230"
-                className="w-full h-auto rounded-xl bg-emerald-950/80 border border-emerald-800/70"
-                role="img"
-                aria-label="Ilustrasi vektor ikonografi spasial peta poligon batas wilayah Kabupaten Konawe"
-              >
-                <defs>
-                  <pattern
-                    id="gis-grid"
-                    width="28"
-                    height="28"
-                    patternUnits="userSpaceOnUse"
-                  >
-                    <path
-                      d="M 28 0 L 0 0 0 28"
-                      fill="none"
-                      stroke="rgba(16, 185, 129, 0.14)"
-                      strokeWidth="1"
-                    />
-                  </pattern>
-                </defs>
-
-                {/* Grid Geodetik */}
-                <rect width="420" height="230" fill="url(#gis-grid)" />
-
-                {/* Garis Kontur Topografi Minimalis */}
-                <path
-                  d="M -10 185 Q 95 140 210 175 T 430 145"
-                  fill="none"
-                  stroke="rgba(52, 211, 153, 0.18)"
-                  strokeWidth="1.5"
-                  strokeDasharray="4 4"
-                />
-                <path
-                  d="M -10 70 Q 130 25 255 65 T 430 40"
-                  fill="none"
-                  stroke="rgba(52, 211, 153, 0.16)"
-                  strokeWidth="1.5"
-                  strokeDasharray="4 4"
-                />
-
-                {/* Poligon Spasial Wilayah Administrasi */}
-                <polygon
-                  points="65,62 158,34 242,56 268,118 205,178 102,168 54,118"
-                  fill="rgba(16, 185, 129, 0.18)"
-                  stroke="#34d399"
-                  strokeWidth="2"
-                />
-                <polygon
-                  points="242,56 346,44 378,108 332,182 205,178 268,118"
-                  fill="rgba(245, 158, 11, 0.14)"
-                  stroke="#fbbf24"
-                  strokeWidth="2"
-                  strokeDasharray="5 3"
-                />
-
-                {/* Segmen Garis Batas Internal Desa/Kecamatan */}
-                <polyline
-                  points="158,34 176,106 102,168"
-                  fill="none"
-                  stroke="rgba(167, 243, 208, 0.65)"
-                  strokeWidth="1.5"
-                />
-                <polyline
-                  points="176,106 268,118 346,44"
-                  fill="none"
-                  stroke="rgba(167, 243, 208, 0.55)"
-                  strokeWidth="1.5"
-                />
-
-                {/* Titik Pilar Batas Utama (PBU / TK) */}
-                <g>
-                  <circle cx="158" cy="34" r="4.5" fill="#fbbf24" />
-                  <circle cx="242" cy="56" r="5" fill="#fbbf24" />
-                  <circle cx="268" cy="118" r="5.5" fill="#10b981" stroke="#ffffff" strokeWidth="1.5" />
-                  <circle cx="176" cy="106" r="4.5" fill="#34d399" />
-                  <circle cx="205" cy="178" r="4.5" fill="#fbbf24" />
-                  <circle cx="346" cy="44" r="4" fill="#fbbf24" />
-                  <circle cx="332" cy="182" r="4" fill="#34d399" />
-                </g>
-
-                {/* Label Koordinat Spasial */}
-                <rect
-                  x="16"
-                  y="194"
-                  width="192"
-                  height="24"
-                  rx="6"
-                  fill="rgba(6, 78, 59, 0.85)"
-                  stroke="rgba(52, 211, 153, 0.35)"
-                />
-                <text
-                  x="26"
-                  y="210"
-                  fill="#d1fae5"
-                  fontSize="10"
-                  fontFamily="JetBrains Mono, monospace"
+              {/* Kanvas Spasial: Grid & Garis Kontur Latar Belakang + Peta Resmi Kecamatan Konawe */}
+              <div className="relative rounded-xl bg-emerald-950/80 border border-emerald-800/70 py-4 px-3 overflow-hidden min-h-[230px] flex items-center justify-center">
+                {/* Latar Belakang Ornamen Grid & Garis Kontur Melengkung Halus */}
+                <svg
+                  viewBox="0 0 420 230"
+                  preserveAspectRatio="none"
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  aria-hidden="true"
                 >
+                  <defs>
+                    <pattern
+                      id="gis-grid"
+                      width="28"
+                      height="28"
+                      patternUnits="userSpaceOnUse"
+                    >
+                      <path
+                        d="M 28 0 L 0 0 0 28"
+                        fill="none"
+                        stroke="rgba(16, 185, 129, 0.14)"
+                        strokeWidth="1"
+                      />
+                    </pattern>
+                  </defs>
+
+                  {/* Grid Geodetik */}
+                  <rect width="420" height="230" fill="url(#gis-grid)" />
+
+                  {/* Garis Kontur Topografi Melengkung Halus */}
+                  <path
+                    d="M -10 185 Q 95 140 210 175 T 430 145"
+                    fill="none"
+                    stroke="rgba(52, 211, 153, 0.18)"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 4"
+                  />
+                  <path
+                    d="M -10 70 Q 130 25 255 65 T 430 40"
+                    fill="none"
+                    stroke="rgba(52, 211, 153, 0.16)"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 4"
+                  />
+                </svg>
+
+                {/* Peta Administrasi Kecamatan Konawe */}
+                <img
+                  src="/Peta_Konawe_Kecamatan.png"
+                  alt="Peta Administrasi Kecamatan Konawe"
+                  className="w-[85%] h-auto mx-auto object-contain mix-blend-screen filter invert sepia saturate-[500%] hue-rotate-[110deg] opacity-80 hover:opacity-100 transition-all duration-300 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]"
+                />
+
+                {/* Label Koordinat Spasial & Jumlah Poligon */}
+                <div className="absolute bottom-2.5 left-3 z-20 px-2.5 py-1 rounded-md bg-emerald-950/85 border border-emerald-400/35 text-[10px] font-mono text-emerald-100 pointer-events-none">
                   03°51&apos;24&quot;LS · 122°03&apos;18&quot;BT
-                </text>
-
-                <rect
-                  x="284"
-                  y="14"
-                  width="120"
-                  height="22"
-                  rx="6"
-                  fill="rgba(6, 78, 59, 0.85)"
-                  stroke="rgba(251, 191, 36, 0.4)"
-                />
-                <text
-                  x="294"
-                  y="28"
-                  fill="#fde68a"
-                  fontSize="10"
-                  fontFamily="JetBrains Mono, monospace"
-                >
+                </div>
+                <div className="absolute top-2.5 right-3 z-20 px-2.5 py-0.5 rounded-md bg-emerald-950/85 border border-amber-400/40 text-[10px] font-mono text-amber-200 pointer-events-none">
                   {stats.totalDesaKelurahan} POLIGON DESA
-                </text>
-              </svg>
+                </div>
+              </div>
 
               <div className="mt-3 flex items-center justify-between text-xs text-emerald-100/80">
                 <span className="inline-flex items-center gap-1.5">

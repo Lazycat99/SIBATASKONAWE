@@ -33,6 +33,11 @@ export interface DokumenBatas {
   keterangan: string;
 }
 
+export interface KronologiBatasItem {
+  tanggal: string;
+  kegiatan: string;
+}
+
 export interface ProgresBatasLuar {
   id: string;
   segmen: string;
@@ -45,6 +50,8 @@ export interface ProgresBatasLuar {
   statusTeknis: string;
   linkDokumen: string;
   fokusPeta: string;
+  rangkumanStatus?: string;
+  kronologi?: KronologiBatasItem[];
 }
 
 export interface ProgresBatasDalam {
@@ -146,13 +153,9 @@ export function buildDokumenFromWilayah(
       kecamatan: kecClean,
       jenisDokumen: 'BA',
       status: hasBaFinal ? 'Final' : 'Draft',
-      nomorDokumen: isBaOnly
-        ? ketBatas.replace(/:$/, '')
-        : hasBaFinal
-        ? `BA Batas ${fullTitle}`
-        : isDraft
-        ? `Draf BA ${fullTitle}`
-        : `Belum Tersedia BA`,
+      nomorDokumen: hasBaFinal
+        ? 'Bundel Kesepakatan & Pelacakan'
+        : 'Tahap Pengumpulan Data Form',
       linkDrive: linkBatas,
       linkPembentukan: linkPerda,
       keteranganPembentukan: ketPerda,
@@ -467,29 +470,23 @@ export const INITIAL_PROGRES_LUAR: ProgresBatasLuar[] = [
       'Pelaksanaan verifikasi lapangan terhadap Pilar Batas Utama (PBU) dan Titik Kartometrik (TK), serta sinkronisasi peta kerja bersama Biro Pemerintahan Setda Prov. Sultra.',
     jumlahPilar: 'Koridor Sampara - Lalonggasumeeto - Soropia',
     targetSelesai: 'Pemutakhiran Tapem Konawe',
-    statusTeknis: 'Sinkronisasi Peta Kerja & Verifikasi Pilar',
+    statusTeknis: 'Executive Summary · Mediasi Kemendagri',
     linkDokumen:
       'https://drive.google.com/file/d/1aHBW5Yk30FVTVsVsHUOs4e3eZaaSZvDU/view?usp=sharing',
-    fokusPeta: 'Segmen Batas Kota Kendari - Kab. Konawe'
+    fokusPeta: 'Segmen Batas Kota Kendari - Kab. Konawe',
+    rangkumanStatus:
+      'Status Segmen Tersisa: Terdapat satu segmen batas yang belum disepakati, yaitu area antara Titik Point 6 (Klaim Kab. Konawe) dan Gerbang Puuwatu / Simpang Abeli Dalam (Klaim Kota Kendari). Sesuai BA Kesepakatan 7 September 2026, penyelesaian dan penarikan garis batas untuk segmen ini telah diserahkan sepenuhnya kepada Kementerian Dalam Negeri Republik Indonesia untuk diputuskan secara definitif.',
+    kronologi: [
+      { tanggal: '05 Mei 2021', kegiatan: 'Survei Lapangan & Identifikasi Pilar' },
+      { tanggal: '23 Sep 2024', kegiatan: 'Rakor Pusat Kemendagri (BA No. 15/BAD II)' },
+      { tanggal: '18 Sep 2025', kegiatan: 'Sinkronisasi Pemprov Sultra (BA No. 07/BAD II)' },
+      { tanggal: '27 Ags 2026', kegiatan: 'Validasi Kartometrik (Penegasan status Pilar No. 7)' },
+      { tanggal: '07 Sep 2026', kegiatan: 'Penandatanganan BA Penyerahan Sengketa ke Kemendagri' },
+      { tanggal: '01 Okt 2026', kegiatan: 'Rakor Lanjutan Tata Ruang Kemendagri' }
+    ]
   },
   {
     id: 'LUAR-02',
-    segmen: 'Kab. Konawe Selatan - Kab. Konawe',
-    wilayahBersinggungan:
-      'Kec. Lambuya, Pondidaha, Wonggeduku & Besulutu (Konawe) — Kab. Konawe Selatan',
-    persentase: 95,
-    tahapanSaatIni: 'Evaluasi akhir dokumen batas dan validasi daftar koordinat geografis',
-    deskripsiTahapan:
-      'Koridor batas wilayah Kecamatan Pondidaha, Wonggeduku, Wonggeduku Barat, dan Besulutu telah terdata dalam arsip Perda dan Perbup Kabupaten Konawe.',
-    jumlahPilar: 'Koridor Sungai Konaweha & Jalur Darat',
-    targetSelesai: 'Terintegrasi Arsip Tapem',
-    statusTeknis: 'Validasi Koordinat & Peta Kerja',
-    linkDokumen:
-      'https://drive.google.com/file/d/1DEFHRtJZ-KykN1FxZJwyqYybbcRNO75R/view?usp=sharing',
-    fokusPeta: 'Segmen Batas Kab. Konawe Selatan - Kab. Konawe'
-  },
-  {
-    id: 'LUAR-03',
     segmen: 'Kab. Konawe Utara - Kab. Konawe',
     wilayahBersinggungan:
       'Kec. Routa, Bondoala, Morosi & Kapoiala (Konawe) — Kab. Konawe Utara',
@@ -499,26 +496,27 @@ export const INITIAL_PROGRES_LUAR: ProgresBatasLuar[] = [
       'Penegasan batas wilayah administrasi pada koridor Kecamatan Routa (Desa Puuwiwirano, Tanggola, Lalomerui), Bondoala, dan Kapoiala.',
     jumlahPilar: 'Koridor Routa - Bondoala - Kapoiala',
     targetSelesai: 'Pemutakhiran Tapem Konawe',
-    statusTeknis: 'Pelacakan Kartometrik & Mediasi Segmen',
+    statusTeknis: 'Executive Summary · Mediasi Kemendagri',
     linkDokumen:
       'https://drive.google.com/file/d/1aH6M2iUQdENKQlmfkgfWSKKLxjj05MMZ/view?usp=sharing',
-    fokusPeta: 'Segmen Batas Kab. Konawe Utara - Kab. Konawe'
-  },
-  {
-    id: 'LUAR-04',
-    segmen: 'Kab. Kolaka Timur - Kab. Konawe',
-    wilayahBersinggungan:
-      'Kec. Asinua, Latoma, Tongauna & Padangguni (Konawe) — Kab. Kolaka Timur',
-    persentase: 84,
-    tahapanSaatIni: 'Penyelarasan titik kartometrik berbasis batas alam punggung pegunungan',
-    deskripsiTahapan:
-      'Verifikasi segmen batas wilayah pada koridor Kecamatan Latoma, Asinua, Tongauna Utara, dan Padangguni.',
-    jumlahPilar: 'Koridor Latoma - Asinua - Padangguni',
-    targetSelesai: 'Pemutakhiran Tapem Konawe',
-    statusTeknis: 'Finalisasi Berita Acara Antar-Daerah',
-    linkDokumen:
-      'https://drive.google.com/file/d/1nyerdBgZ03falPbAd-1ysLxvZwES6MEw/view?usp=sharing',
-    fokusPeta: 'Segmen Batas Kab. Kolaka Timur - Kab. Konawe'
+    fokusPeta: 'Segmen Batas Kab. Konawe Utara - Kab. Konawe',
+    rangkumanStatus:
+      'Status Sengketa Total: Sampai saat ini belum ada satupun segmen batas yang disetujui antara kedua daerah. Terdapat tumpang tindih area (overlap) yang sangat masif, meliputi area ±67.669 Ha di perbatasan Desa Lalomerui (Kec. Routa) hingga klaim atas 3 desa (Sama Subur, Tobimeita, Banggina) yang secara historis dan UU Pembentukan terbukti berada di wilayah Konawe. Keputusan final kini berada di tangan Kementerian Dalam Negeri.',
+    kronologi: [
+      {
+        tanggal: '17 Sep 2025',
+        kegiatan: 'Kesepakatan Pelibatan Tokoh Pemekaran Sejarah (BA No. 05/BAD II).'
+      },
+      {
+        tanggal: '20 Feb 2026',
+        kegiatan:
+          'Pemaparan Bukti Historis Desa Banggina (Tahun 2004) dan Batas Alam Sungai Wataraki (BA No. 08/BAD II).'
+      },
+      {
+        tanggal: 'Status Saat Ini',
+        kegiatan: 'Menunggu Kajian Pusat untuk Penyusunan Rancangan Permendagri.'
+      }
+    ]
   }
 ];
 
@@ -665,7 +663,7 @@ export function getFeaturedFinalWilayah(
   return finalWilayah.slice(0, Math.max(1, limit));
 }
 
-export const AUTHORIZATION_CODE = 'TAPEM2026';
+export const AUTHORIZATION_CODE = 'KONAWE2026';
 
 export interface NewDocumentInput {
   kode?: string;
@@ -687,10 +685,10 @@ export interface NewDocumentInput {
 export function validateNewDocument(
   input: NewDocumentInput
 ): { valid: true } | { valid: false; error: string } {
-  if (input.sandiOtorisasi !== undefined && input.sandiOtorisasi !== AUTHORIZATION_CODE) {
+  if (input.sandiOtorisasi !== AUTHORIZATION_CODE) {
     return {
       valid: false,
-      error: 'Sandi Salah: Sandi Otorisasi wajib diisi dengan benar untuk menyimpan data.'
+      error: 'Akses Ditolak: Sandi Otorisasi Tidak Valid.'
     };
   }
   if (!input.namaDesa || input.namaDesa.trim().length < 3) {
@@ -747,3 +745,312 @@ if (typeof window !== "undefined") {
 }
 `;
 }
+
+export interface KonaweGeoJsonProperties {
+  OBJECTID?: number;
+  Name?: string;
+  Kec?: string;
+  Perbup?: 'YA' | 'TIDAK' | 'PROSES' | string;
+  Luas?: number;
+  Shape_Leng?: number;
+  Shape_Area?: number;
+  [key: string]: unknown;
+}
+
+export interface FormattedGeoJsonFeatureInfo {
+  objectId: number | null;
+  namaWilayah: string;
+  kecamatan: string;
+  statusHukum: string;
+  statusKategori: 'YA' | 'PROSES' | 'TIDAK';
+  luasHa: string;
+  kelilingKm: string;
+  keteranganRegulasi: string;
+  linkDokumen: string;
+}
+
+/**
+ * Mengonversi koordinat UTM Zona 51S (EPSG:32751, dalam satuan meter)
+ * menjadi koordinat geografis WGS84 [longitude, latitude] (EPSG:4326).
+ * Jika koordinat sudah berada dalam rentang derajat WGS84, dikembalikan apa adanya.
+ */
+export function utm51SToLngLat(xOrLng: number, yOrLat: number): [number, number] {
+  if (Math.abs(xOrLng) <= 180 && Math.abs(yOrLat) <= 90) {
+    return [xOrLng, yOrLat];
+  }
+
+  const a = 6378137.0;
+  const f = 1 / 298.257223563;
+  const eSq = f * (2 - f);
+  const ePrimeSq = eSq / (1 - eSq);
+  const k0 = 0.9996;
+  const x = xOrLng - 500000.0;
+  const y = yOrLat - 10000000.0; // False northing belahan bumi selatan (51S)
+  const lon0 = ((51 - 1) * 6 - 180 + 3) * (Math.PI / 180); // Meridian tengah Zona 51 = 123° BT
+
+  const M = y / k0;
+  const mu = M / (a * (1 - eSq / 4 - (3 * eSq * eSq) / 64 - (5 * eSq * eSq * eSq) / 256));
+  const e1 = (1 - Math.sqrt(1 - eSq)) / (1 + Math.sqrt(1 - eSq));
+
+  const phi1 =
+    mu +
+    ((3 * e1) / 2 - (27 * Math.pow(e1, 3)) / 32) * Math.sin(2 * mu) +
+    ((21 * e1 * e1) / 16 - (55 * Math.pow(e1, 4)) / 32) * Math.sin(4 * mu) +
+    ((151 * e1 * e1 * e1) / 96) * Math.sin(6 * mu) +
+    ((1097 * Math.pow(e1, 4)) / 512) * Math.sin(8 * mu);
+
+  const sinPhi1 = Math.sin(phi1);
+  const cosPhi1 = Math.cos(phi1);
+  const tanPhi1 = Math.tan(phi1);
+
+  const N1 = a / Math.sqrt(1 - eSq * sinPhi1 * sinPhi1);
+  const T1 = tanPhi1 * tanPhi1;
+  const C1 = ePrimeSq * cosPhi1 * cosPhi1;
+  const R1 = (a * (1 - eSq)) / Math.pow(1 - eSq * sinPhi1 * sinPhi1, 1.5);
+  const D = x / (N1 * k0);
+
+  const latRad =
+    phi1 -
+    ((N1 * tanPhi1) / R1) *
+      ((D * D) / 2 -
+        ((5 + 3 * T1 + 10 * C1 - 4 * C1 * C1 - 9 * ePrimeSq) * Math.pow(D, 4)) / 24 +
+        ((61 + 90 * T1 + 298 * C1 + 45 * T1 * T1 - 252 * ePrimeSq - 3 * C1 * C1) *
+          Math.pow(D, 6)) /
+          720);
+
+  const lonRad =
+    lon0 +
+    (D -
+      ((1 + 2 * T1 + C1) * Math.pow(D, 3)) / 6 +
+      ((5 - 2 * C1 + 28 * T1 - 3 * C1 * C1 + 8 * ePrimeSq + 24 * T1 * T1) * Math.pow(D, 5)) /
+        120) /
+      cosPhi1;
+
+  return [
+    Number((lonRad * (180 / Math.PI)).toFixed(6)),
+    Number((latRad * (180 / Math.PI)).toFixed(6))
+  ];
+}
+
+function transformGeoJsonCoords(coords: unknown): unknown {
+  if (!Array.isArray(coords)) return coords;
+  if (
+    coords.length >= 2 &&
+    typeof coords[0] === 'number' &&
+    typeof coords[1] === 'number'
+  ) {
+    return utm51SToLngLat(coords[0], coords[1]);
+  }
+  return coords.map(transformGeoJsonCoords);
+}
+
+/**
+ * Menormalkan FeatureCollection GeoJSON Kabupaten Konawe:
+ * - Menyaring fitur dengan geometri kosong/null
+ * - Mengonversi koordinat UTM 51S menjadi WGS84 [lng, lat] agar siap dirender oleh Leaflet
+ */
+export function normalizeKonaweGeoJson(rawGeoJson: {
+  type?: string;
+  features?: Array<{
+    type?: string;
+    properties?: KonaweGeoJsonProperties;
+    geometry?: { type?: string; coordinates?: unknown } | null;
+  }>;
+}) {
+  const validFeatures = (rawGeoJson?.features ?? [])
+    .filter(
+      (f) =>
+        Boolean(f?.geometry) &&
+        Boolean(f?.geometry?.type) &&
+        Array.isArray(f?.geometry?.coordinates) &&
+        (f.geometry.coordinates as unknown[]).length > 0
+    )
+    .map((f) => ({
+      type: 'Feature' as const,
+      properties: f.properties ?? {},
+      geometry: {
+        type: f.geometry!.type as string,
+        coordinates: transformGeoJsonCoords(f.geometry!.coordinates)
+      }
+    }));
+
+  return {
+    type: 'FeatureCollection' as const,
+    features: validFeatures
+  };
+}
+
+function toTitleCaseWords(raw: string): string {
+  return raw
+    .toLowerCase()
+    .replace(/\b\w/g, (ch) => ch.toUpperCase())
+    .trim();
+}
+
+/**
+ * Memformat atribut (properties) dari setiap poligon GeoJSON /batas_konawe.json
+ * serta mencocokkannya dengan arsip wilayahDataKonawe apabila tersedia.
+ */
+export function formatGeoJsonFeatureInfo(
+  props: KonaweGeoJsonProperties = {},
+  wilayahList: WilayahKonawe[] = wilayahDataKonawe
+): FormattedGeoJsonFeatureInfo {
+  const rawName = String(props.Name ?? 'Wilayah Tidak Diketahui').trim();
+  const rawKec = String(props.Kec ?? 'Kecamatan Tidak Diketahui').trim();
+  const rawPerbup = String(props.Perbup ?? 'TIDAK')
+    .trim()
+    .toUpperCase();
+
+  const namaWilayah = toTitleCaseWords(rawName);
+  const kecamatan = toTitleCaseWords(rawKec);
+
+  const statusKategori: 'YA' | 'PROSES' | 'TIDAK' =
+    rawPerbup === 'YA' ? 'YA' : rawPerbup === 'PROSES' ? 'PROSES' : 'TIDAK';
+
+  const statusHukum =
+    statusKategori === 'YA'
+      ? 'Batas Definitif (Perbup Tersedia)'
+      : statusKategori === 'PROSES'
+      ? 'Dalam Proses Penetapan (Tahap Draf / Mediasi)'
+      : 'Batas Indikatif (Belum Terbit Perbup)';
+
+  const luasNum = typeof props.Luas === 'number' && Number.isFinite(props.Luas) ? props.Luas : null;
+  const luasHa =
+    luasNum !== null
+      ? `${luasNum.toLocaleString('id-ID', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        })} Ha`
+      : '-';
+
+  const kelilingNum =
+    typeof props.Shape_Leng === 'number' && Number.isFinite(props.Shape_Leng)
+      ? props.Shape_Leng / 1000
+      : null;
+  const kelilingKm =
+    kelilingNum !== null
+      ? `${kelilingNum.toLocaleString('id-ID', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        })} km`
+      : '-';
+
+  // Cocokkan dengan wilayahDataKonawe berdasarkan nama desa & kecamatan
+  const strippedDesaName = rawName.replace(/^(DESA|KELURAHAN)\s+/i, '').trim().toLowerCase();
+  const strippedKecName = rawKec.replace(/^KECAMATAN\s+/i, '').trim().toLowerCase();
+
+  const matchedWilayah = wilayahList.find((w) => {
+    const wDesa = w.nama_wilayah.trim().toLowerCase();
+    const wKec = formatNamaKecamatan(w.kecamatan).toLowerCase();
+    return wDesa === strippedDesaName && wKec === strippedKecName;
+  });
+
+  const keteranganRegulasi =
+    matchedWilayah && matchedWilayah.keterangan_batas.trim().length > 0
+      ? matchedWilayah.keterangan_batas.replace(/:$/, '')
+      : statusKategori === 'YA'
+      ? 'Telah memiliki Peraturan Bupati Konawe tentang Batas Desa/Kelurahan'
+      : statusKategori === 'PROSES'
+      ? 'Sedang dalam proses pelacakan lapangan & verifikasi teknis Tapem'
+      : 'Mengacu pada garis delineasi indikatif sambil menunggu penetapan Perbup definitif';
+
+  const linkDokumen = matchedWilayah?.link_batas?.trim() ?? '';
+
+  return {
+    objectId: typeof props.OBJECTID === 'number' ? props.OBJECTID : null,
+    namaWilayah,
+    kecamatan,
+    statusHukum,
+    statusKategori,
+    luasHa,
+    kelilingKm,
+    keteranganRegulasi,
+    linkDokumen
+  };
+}
+
+function normalizeLocationToken(raw: string): string {
+  return raw
+    .toLowerCase()
+    .replace(/^(desa|kelurahan|kecamatan|kec\.?)\s+/i, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function collapseDoubleLetters(raw: string): string {
+  return raw.replace(/([a-z])\1+/g, '$1');
+}
+
+/**
+ * Mencari daftar fitur GeoJSON dari /batas_konawe.json yang cocok dengan parameter target desa
+ * (baik dari URL ?desa=Tobimeita maupun dari tombol 'Lihat di Peta WebGIS' seperti
+ * 'Desa Tobimeita, Kecamatan Wonggeduku Barat').
+ */
+export function findMatchingGeoJsonFeatures<
+  T extends { properties?: KonaweGeoJsonProperties | null }
+>(features: T[], targetQuery: string | null | undefined): T[] {
+  if (!targetQuery || !targetQuery.trim() || !Array.isArray(features) || features.length === 0) {
+    return [];
+  }
+
+  const parts = targetQuery
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const rawDesaTarget = parts[0] ?? targetQuery.trim();
+  const rawKecTarget = parts[1] ?? '';
+
+  const targetDesaNorm = normalizeLocationToken(rawDesaTarget);
+  const targetDesaCollapsed = collapseDoubleLetters(targetDesaNorm);
+  const targetKecNorm = normalizeLocationToken(rawKecTarget);
+  const targetKecCollapsed = collapseDoubleLetters(targetKecNorm);
+
+  if (!targetDesaNorm) return [];
+
+  // 1. Cari kecocokan eksak pada nama desa (properties.Name atau properties.NAMOBJ)
+  const exactDesaMatches = features.filter((f) => {
+    const props = f.properties ?? {};
+    const rawFeatureName = String(props.NAMOBJ ?? props.Name ?? '').trim();
+    const featDesaNorm = normalizeLocationToken(rawFeatureName);
+    const featDesaCollapsed = collapseDoubleLetters(featDesaNorm);
+    return (
+      featDesaNorm === targetDesaNorm ||
+      (featDesaCollapsed.length >= 4 && featDesaCollapsed === targetDesaCollapsed)
+    );
+  });
+
+  if (exactDesaMatches.length > 1 && targetKecNorm) {
+    const withKecMatch = exactDesaMatches.filter((f) => {
+      const rawFeatureKec = String(f.properties?.Kec ?? '').trim();
+      const featKecNorm = normalizeLocationToken(rawFeatureKec);
+      const featKecCollapsed = collapseDoubleLetters(featKecNorm);
+      return (
+        featKecNorm === targetKecNorm ||
+        featKecCollapsed === targetKecCollapsed ||
+        featKecNorm.includes(targetKecNorm) ||
+        targetKecNorm.includes(featKecNorm)
+      );
+    });
+    if (withKecMatch.length > 0) {
+      return withKecMatch;
+    }
+  }
+
+  if (exactDesaMatches.length > 0) {
+    return exactDesaMatches;
+  }
+
+  // 2. Fallback: kecocokan sebagian (contains) pada nama desa atau kecamatan
+  return features.filter((f) => {
+    const props = f.properties ?? {};
+    const rawFeatureName = String(props.NAMOBJ ?? props.Name ?? '').trim();
+    const featDesaNorm = normalizeLocationToken(rawFeatureName);
+    return (
+      featDesaNorm.includes(targetDesaNorm) || targetDesaNorm.includes(featDesaNorm)
+    );
+  });
+}
+
+
